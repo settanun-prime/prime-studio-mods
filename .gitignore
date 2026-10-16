@@ -4,3 +4,7 @@ node_modules/
 graft/
 .ignore
 **/.claude-plugin/types/
+
+# local test runner, not part of the plugins
+/package.json
+/scripts/
