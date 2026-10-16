@@ -10,6 +10,11 @@ export const SLUG_RE = /^[a-z0-9][a-z0-9._-]{0,59}$/;
 export const PROTECTED = new Set(['main', 'master', 'dev', 'develop', 'HEAD']);
 export const BASE_CANDIDATES = ['origin/dev', 'origin/main', 'dev', 'main', 'master'];
 
+// Windows cannot exec a shell script (EFTYPE): run a .sh through bash there.
+// shortcut: takes the bash on PATH to be Git Bash; WSL's System32 bash first on PATH would run it in Linux instead
+export const shArgv = (file, args = []) =>
+  process.platform === 'win32' && file.endsWith('.sh') ? ['bash', [file, ...args]] : [file, args];
+
 export function git(args, opts = {}) {
   try {
     const out = execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],

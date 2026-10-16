@@ -3,9 +3,9 @@ import { expect, mock, test } from 'claude-code/testing'
 import { TEST_CMD } from '../hooks/guard'
 
 test('a test runner is told from a command that only names one', () => {
-  for (const cmd of ['npm test', 'cd app && pytest -q', 'claude plugin test prime-ctbar', 'node prime-workflow/tests/unit.test.mjs', 'CI=1 npx vitest run', 'go test ./...', 'bun run test'])
+  for (const cmd of ['npm test', 'cd app && pytest -q', 'claude plugin test prime-ctbar', 'node prime-workflow/tests/unit.test.mjs', 'CI=1 npx vitest run', 'go test ./...', 'bun run test', 'bash tests/run.sh', 'cd x && timeout 580 bash tests/run.sh 2>&1 | tail', './tests/run.sh', 'node --test', 'sh test/run.sh'])
     expect(TEST_CMD.test(cmd)).toBe(true)
-  for (const cmd of ['grep jest package.json', 'cat pytest.ini', 'git commit -m "fix npm test"', 'ls tests', 'echo go test'])
+  for (const cmd of ['grep jest package.json', 'cat pytest.ini', 'git commit -m "fix npm test"', 'ls tests', 'echo go test', 'cat tests/run.sh', 'node build.mjs'])
     expect(TEST_CMD.test(cmd)).toBe(false)
 })
 

@@ -33,10 +33,16 @@ test('a passing test run plays the jingle, a failing one the buzz, a background 
   await settle()
   expect(played).toEqual(['pass', 'fail'])
 
+  // a suite run as a script in a tests folder, behind a timeout
+  fails = false
+  await $.tool.call({ tool: 'Bash', command: 'cd x && timeout 580 bash tests/run.sh 2>&1 | tail -30' } as any)
+  await settle()
+  expect(played).toEqual(['pass', 'fail', 'pass'])
+
   await $.tool.call({ tool: 'Bash', command: 'npm test', run_in_background: true } as any)
   await $.tool.call({ tool: 'Bash', command: 'ls' } as any)
   await settle()
-  expect(played).toEqual(['pass', 'fail'])
+  expect(played).toEqual(['pass', 'fail', 'pass'])
 })
 
 test('a turn that ends in an error plays the buzz; /prime-ctbar sound off silences it', async ($, on) => {

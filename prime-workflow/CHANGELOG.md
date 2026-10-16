@@ -2,6 +2,11 @@
 
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); [SemVer](https://semver.org/). The repository-wide CHANGELOG.md summarises each release in Thai and English and links here.
 
+## 1.1.1 - 2026-10-16
+
+- **Fixed** on Windows the Node scripts ran `.sh` files directly, which Windows cannot execute (`spawnSync ... EFTYPE`): `prime-plan.mjs apply` created no worktree, and `prime-run.mjs` saw every gate, merge and cleanup step exit 1. A `.sh` now runs through `bash` there (`shArgv` in `scripts/lib/prime-node.mjs`).
+- **Tests** `tests/v06.mjs` runs `.sh` files the same way, imports by `file://` URL, and skips the git-stub case Node cannot spawn on Windows; `tests/run.sh` keeps git on the PATH of the "CLI missing" cases and skips the exec-bit gate case on Windows, where files have no exec bit.
+
 ## 1.1.0 - 2026-10-16
 
 - **Added** `/setup-op` (`skills/setup-op`) and `/op-mode` (`skills/op-mode` with the `prototype`, `autonomous-run`, `pickup` and `pause` playbooks), adapted from Cursor's `pstack` `/setup-pstack` and `/poteto-mode` (MIT). `/op-mode` routes a task to a playbook and the skills it needs, with a bundled fallback for each, and hands multi-part work to the autopilot.

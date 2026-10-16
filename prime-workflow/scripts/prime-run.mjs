@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 import { writeFileSync, mkdirSync, mkdtempSync, rmSync, chmodSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { PLUGIN_ROOT, git, gitOk, readJson, loadConfig, resolveBase, worktrees, ledger, commonDir, exists, checkPlan, hashStreams, streamId, outsidePaths } from './lib/prime-node.mjs';
+import { PLUGIN_ROOT, shArgv, git, gitOk, readJson, loadConfig, resolveBase, worktrees, ledger, commonDir, exists, checkPlan, hashStreams, streamId, outsidePaths } from './lib/prime-node.mjs';
 
 const args = process.argv.slice(2);
 if (args.some((a) => !['verify', '--apply', '--json'].includes(a)) || args.indexOf('verify') > 0) {
@@ -38,7 +38,7 @@ const gateId = (dir) => { const f = join(dir, '.prime', 'gate.sh'); return short
 let base = '', target = '', integration = '';
 
 function run(cmd, argv, { cwd, timeout } = {}) {
-  const r = spawnSync(cmd, argv, { cwd, timeout, encoding: 'utf8', maxBuffer: 64 << 20, killSignal: 'SIGKILL',
+  const r = spawnSync(...shArgv(cmd, argv), { cwd, timeout, encoding: 'utf8', maxBuffer: 64 << 20, killSignal: 'SIGKILL',
     env: { ...process.env, PRIME_BASE: base, GIT_TERMINAL_PROMPT: '0', CI: process.env.CI || '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
   return { code: r.error?.code === 'ETIMEDOUT' ? 124 : (r.status ?? 1), out: `${r.stdout || ''}${r.stderr || ''}` };
 }

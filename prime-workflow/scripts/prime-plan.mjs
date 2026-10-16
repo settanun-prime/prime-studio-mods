@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { PLUGIN_ROOT, git, gitOk, readJson, loadConfig, pickBase, resolveBase, worktrees, ledger, commonDir, checkPlan as checkPlanCfg, hashStreams, streamId } from './lib/prime-node.mjs';
+import { PLUGIN_ROOT, shArgv, git, gitOk, readJson, loadConfig, pickBase, resolveBase, worktrees, ledger, commonDir, checkPlan as checkPlanCfg, hashStreams, streamId } from './lib/prime-node.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 const opt = (name) => { const i = rest.indexOf(name); return i >= 0 ? (rest[i + 1] ?? '') : undefined; };
@@ -173,7 +173,7 @@ switch (cmd) {
     }
     for (const slug of todo) {
       const args = [slug, '--base', opt('--base') || plan.integration];
-      execFileSync(join(PLUGIN_ROOT, 'scripts', 'worktree-new.sh'), args, { stdio: 'inherit', cwd: mainWt });
+      execFileSync(...shArgv(join(PLUGIN_ROOT, 'scripts', 'worktree-new.sh'), args), { stdio: 'inherit', cwd: mainWt });
       const wt = worktrees().find((w) => w.branch === `feature/${slug}`);
       const own = join(wt.path, '.prime', 'ownership.json');
       const s = bySlug.get(slug);

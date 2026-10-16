@@ -71,17 +71,37 @@ const RETRY_MS = 2000
 const RETRIES = 5
 const COMPACT_TIMEOUT_MS = 120_000
 const TIMEOUT = 'no answer after 2 minutes'
+// set while a compaction is awaited: the session.compact hook calls it once one lands, whoever asked for it
+let landed: (() => void) | undefined
+
+// the answer to a compaction request, or undefined once a compaction lands first: a host's /compact may answer its command
+// late or never. Rejects with TIMEOUT when neither comes, so a press never spins forever
+async function untilLanded<T>($: EngineInterface, work: Promise<T>): Promise<T | undefined> {
+  work.catch(() => {}) // a late rejection after the race is decided is no unhandled one
+  let timer: { cancel: () => void } | undefined
+  try {
+    return await Promise.race([
+      work,
+      new Promise<undefined>(ok => { landed = () => ok(undefined) }),
+      new Promise<never>((_, no) => { timer = $.clock.after(COMPACT_TIMEOUT_MS, () => no(new Error(TIMEOUT))) }),
+    ])
+  } finally {
+    timer?.cancel()
+    landed = undefined
+  }
+}
 
 // a host that cannot compact from a plugin (the desktop app and every SDK session: "$.session.compact: not available in a
 // headless (-p / SDK) session") may still run its own /compact command; a plugin runs a command with $.command.run, not as a prompt
 async function compactAsCommand($: EngineInterface, isHeadless: boolean) {
   if (isHeadless) await update($, headless, () => true)
   try {
-    const r = await $.command.run({ command: 'compact', args: COMPACT_KEEP })
-    $.ui.toast(r.text ? `/compact: ${r.text.slice(0, 80)}` : 'Compact: ran /compact')
+    const r = await untilLanded($, $.command.run({ command: 'compact', args: COMPACT_KEEP }))
+    $.ui.toast(r?.text ? `/compact: ${r.text.slice(0, 80)}` : 'Compact: ran /compact')
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
-    $.ui.toast(`Type /compact yourself: this host will not run it for a button (${reason.slice(0, 60)})`)
+    if (reason === TIMEOUT) $.ui.toast('Compact: no answer after 2 minutes; it may still finish')
+    else $.ui.toast(`Type /compact yourself: this host will not run it for a button (${reason.slice(0, 60)})`)
   }
 }
 
@@ -96,16 +116,8 @@ async function compact($: EngineInterface, why: string, attempt = 0) {
     else {
       $.ui.toast('Compacting…')
       // a compaction that never answers must not leave the flag set and every later press silent
-      let timer: { cancel: () => void } | undefined
-      try {
-        const r = await Promise.race([
-          $.session.compact({ instructions: COMPACT_KEEP }),
-          new Promise<never>((_, no) => { timer = $.clock.after(COMPACT_TIMEOUT_MS, () => no(new Error(TIMEOUT))) }),
-        ])
-        $.ui.toast(r.skip ? `Compact skipped: ${r.skip}` : why)
-      } finally {
-        timer?.cancel()
-      }
+      const r = await untilLanded($, $.session.compact({ instructions: COMPACT_KEEP }))
+      $.ui.toast(r?.skip ? `Compact skipped: ${r.skip}` : why)
     }
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
@@ -153,9 +165,9 @@ async function press($: EngineInterface, why: string) {
 }
 
 // 8-bit chimes so the person can look away while tests run: a jingle when they pass, a buzz when they fail or a turn errors
-// A test runner where a command starts (after ; | & ( or a newline, past npx, VAR=x and the like), not the word in a grep
+// A test runner where a command starts (after ; | & ( or a newline, past npx, timeout, VAR=x and the like), not the word in a grep
 const TEST_CMD =
-  /(?:^|[;&|(\n])\s*(?:(?:npx|bunx|sudo|time|uv\s+run|poetry\s+run|pnpm\s+exec)\s+|[A-Za-z_]\w*=\S*\s+)*(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test\b|(?:jest|vitest|mocha|pytest|phpunit|rspec|ctest|playwright\s+test)\b|python3?\s+-m\s+(?:pytest|unittest)\b|(?:go|cargo|dotnet|deno)\s+test\b|cargo\s+nextest\b|(?:\.\/)?gradlew?\s+test\b|mvn\b[^\n;&|]*\btest\b|make\s+(?:test|check)\b|claude\s+plugin\s+test\b|(?:node|bash|sh|python3?|tsx|bun)\s+[\w./\\-]*test[\w.-]*\.(?:sh|mjs|cjs|js|ts|py)\b)/i
+  /(?:^|[;&|(\n])\s*(?:(?:npx|bunx|sudo|time|uv\s+run|poetry\s+run|pnpm\s+exec)\s+|timeout\s+\S+\s+|[A-Za-z_]\w*=\S*\s+)*(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test\b|(?:jest|vitest|mocha|pytest|phpunit|rspec|ctest|playwright\s+test)\b|python3?\s+-m\s+(?:pytest|unittest)\b|(?:go|cargo|dotnet|deno)\s+test\b|cargo\s+nextest\b|(?:\.\/)?gradlew?\s+test\b|mvn\b[^\n;&|]*\btest\b|make\s+(?:test|check)\b|claude\s+plugin\s+test\b|(?:node|bash|sh|python3?|tsx|bun)\s+(?:--test\b|[\w./\\-]*test[\w./\\-]*\.(?:sh|mjs|cjs|js|ts|py)\b)|\.?\.?\/?[\w./\\-]*test[\w./\\-]*\.sh\b)/i
 let lastChime = Number.NEGATIVE_INFINITY
 async function chime($: EngineInterface, clip: 'pass' | 'fail') {
   if (!(await read($, isSoundOn))) return
@@ -258,6 +270,7 @@ export const register: Register = on => {
     try {
       return await next(e)
     } finally {
+      landed?.() // a press waiting on this compaction stops spinning, whether it took or not
       refreshSoon($) // a failed compaction too: the window may have changed
     }
   })

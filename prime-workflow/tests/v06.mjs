@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, appendFileSync, rmSync, cpSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { shArgv } from '../scripts/lib/prime-node.mjs';
 
 const S = fileURLToPath(new URL('../scripts/', import.meta.url)), T = process.argv[2];
 let failures = 0;
 const run = (cwd, cmd, args = [], env = {}) => {
-  const r = spawnSync(cmd, args, { cwd, encoding: 'utf8', env: { ...process.env, ...env } });
+  const r = spawnSync(...shArgv(cmd, args), { cwd, encoding: 'utf8', env: { ...process.env, ...env } });
   return { code: r.status ?? 1, out: `${r.stdout || ''}${r.stderr || ''}` };
 };
 const git = (dir, ...args) => { const r = run(dir, 'git', args); assert.equal(r.code, 0, `git ${args[0]} failed`); return r.out.trim(); };
@@ -84,7 +85,8 @@ test('scan unit: net diff suppresses history duplicates by file and pattern', ()
   const r = plan(historyWt, 'scan', '--base', 'main'); assert.equal(r.code, 3);
   assert.equal(r.out.split('\n').filter((l) => l.startsWith('leak.txt:')).join('\n'), 'leak.txt:1 aws-access-key');
 });
-test('scan unit: a failed history git command exits 2', () => {
+if (process.platform === 'win32') console.log('ok   scan unit: a failed history git command exits 2: skipped (Node cannot spawn a script stub for git on Windows)');
+else test('scan unit: a failed history git command exits 2', () => {
   const stub = join(T, 'bad-log'); mkdirSync(stub);
   const realGit = run(T, 'sh', ['-c', 'command -v git']).out.trim();
   writeFileSync(join(stub, 'git'), `#!/bin/sh\nfor arg in "$@"; do [ "$arg" = log ] && exit 1; done\nexec "${realGit}" "$@"\n`);
@@ -154,7 +156,7 @@ test('plan unit: re-accept keeps integration; final merged branch gets a new nam
   assert.equal(load(pdir).integration, `prime/pay-feature-${load(pdir).planHash.slice(0, 6)}`);
 });
 test('plan unit: apply defaults to integration, creates it without tracking', () => {
-  assert.equal(plan(pdir, 'apply', '--apply').code, 0);
+  { const r = plan(pdir, 'apply', '--apply'); assert.equal(r.code, 0, r.out); }
   const p = load(pdir);
   assert.equal(git(pdir, 'for-each-ref', '--format=%(upstream)', `refs/heads/${p.integration}`), '');
   const own = JSON.parse(readFileSync(join(T, 'plan-unit-owned/.prime/ownership.json')));
@@ -175,7 +177,7 @@ mkdirSync(join(pdir, 'src')); writeFileSync(join(pdir, 'src/pending.txt'), 'unfi
 test('plan unit: untracked main files are errors even from a stream worktree', () => {
   save(pdir, draft(['src/']));
   for (const dir of [pdir, join(T, 'plan-unit-owned')]) {
-    const r = plan(dir, 'check'); assert.equal(r.code, 1); assert.ok(r.out.includes('src/ has untracked files in the main checkout'));
+    const r = plan(dir, 'check'); assert.equal(r.code, 1, r.out); assert.ok(r.out.includes('src/ has untracked files in the main checkout'), r.out);
   }
   rmSync(join(pdir, 'src/pending.txt'));
   const wt = join(T, 'plan-unit-owned'); mkdirSync(join(wt, 'src')); writeFileSync(join(wt, 'src/pending.txt'), 'agent work\n');
@@ -266,7 +268,7 @@ test('outsidePaths keeps a leading space in the first changed path', () => {
   git(dir, 'worktree', 'add', '-q', '-b', 'feature/space', wt, 'main');
   mkdirSync(join(wt, ' src')); writeFileSync(join(wt, ' src/x'), 'x\n'); commit(wt);
   const r = run(wt, 'node', ['--input-type=module', '-e',
-    `import { outsidePaths } from ${JSON.stringify(join(S, 'lib/prime-node.mjs'))}; console.log(JSON.stringify(outsidePaths('.', 'main', ['src/'])));`]);
+    `import { outsidePaths } from ${JSON.stringify(pathToFileURL(join(S, 'lib/prime-node.mjs')).href)}; console.log(JSON.stringify(outsidePaths('.', 'main', ['src/'])));`]);
   assert.equal(r.code, 0, r.out);
   assert.deepEqual(JSON.parse(r.out), [' src/x']);
 });

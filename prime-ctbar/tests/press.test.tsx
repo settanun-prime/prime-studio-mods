@@ -41,3 +41,44 @@ test('pressing the button squeezes the label, compacts once, and opens the label
   expect(await ui.find({ type: 'Text', text: 'compact' })).toBeDefined() // and is back
   await ui.unmount()
 })
+
+// the desktop app and SDK hosts refuse $.session.compact, so the button runs /compact; the host answers that command late or
+// never, so the compaction landing must end the spin
+test('on a host that refuses $.session.compact, the face is built back once /compact lands, answered or not', async ($, on) => {
+  const clock = mock.clock(on)
+  let landed = 0
+  on('ui.toast', () => ({ value: undefined }))
+  on('session.usage', () => ({ value: {
+    startedAt: 0,
+    context: { tokens: 90000, window: 1000000, percent: 9, breakdown: { categories: cats, totalTokens: 90000, maxTokens: 1000000, rawMaxTokens: 1000000, percentage: 9 } },
+    rateLimits: [],
+  } }))
+  let host = false
+  on('session.compact', () => {
+    if (!host) throw new Error('$.session.compact: not available in a headless (-p / SDK) session yet')
+    landed += 1
+    return { messages: [{ role: 'user', text: 'summary', toolUses: [] }] }
+  })
+  // the host's /compact: the compaction runs through every plugin's hook, and the command's own answer never comes
+  on('command.run', { command: 'compact' }, () => {
+    host = true
+    void $.session.compact({ trigger: 'manual', instructions: 'x', messages: [{ role: 'user', text: 'hi', toolUses: [] }] } as any)
+    return new Promise(() => {})
+  })
+  on('session.start', ($$: any, e: { cwd: string }) => ({ cwd: e.cwd }))
+  on('command.register', () => ({ value: { command: 'context-bar' } }))
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+
+  const ui = await $.ui.mount({
+    plugin: 'prime-ctbar',
+    surface: 'desktop',
+    component: 'AbovePrompt',
+    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  })
+  const pressed = $.ui.press({ plugin: 'prime-ctbar', key: 'compact' })
+  for (let i = 0; i < 20; i++) await clock.advance(250)
+  await pressed
+  expect(landed).toBe(1)
+  expect(await ui.find({ type: 'Text', text: 'compact' })).toBeDefined()
+  await ui.unmount()
+})

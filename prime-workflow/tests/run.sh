@@ -15,6 +15,9 @@ git config --global init.defaultBranch main; git config --global advice.detached
 pass=0; fail=0
 ok()  { pass=$((pass + 1)); printf 'ok   %s\n' "$1"; }
 bad() { fail=$((fail + 1)); printf 'FAIL %s\n' "$1"; [ -n "${2:-}" ] && printf '%s\n' "$2" | sed 's/^/     /'; }
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) WINDOWS=1 ;; *) WINDOWS= ;; esac
+# a PATH with no agent CLIs but still git (in /mingw64/bin on Windows, not /usr/bin)
+NOCLI_PATH="$(dirname "$(command -v git)"):/usr/bin:/bin"
 expect_code() { # name expected cmd...
   local name="$1" want="$2"; shift 2; local out; out="$("$@" 2>&1)"; local got=$?
   if [ "$got" = "$want" ]; then ok "$name"; else bad "$name (exit $got, want $want)" "$out"; fi
@@ -58,7 +61,9 @@ grep -q '"result": "pass"' "$(git rev-parse --absolute-git-dir)/prime/gate.json"
 expect_code "gate fail (PRIME_GATE_CMD=false)" 1 env PRIME_GATE_CMD=false "$S/prime-gate.sh" --no-record
 expect_code "gate empty project -> 2" 2 "$S/prime-gate.sh" --no-record
 mkdir -p .prime && printf '#!/bin/sh\nexit 0\n' > .prime/gate.sh
-expect_code "gate: non-executable .prime/gate.sh -> 1" 1 "$S/prime-gate.sh" --no-record
+if [ -n "$WINDOWS" ]; then ok "gate: non-executable gate.sh: skipped (Windows has no exec bit)"
+else expect_code "gate: non-executable .prime/gate.sh -> 1" 1 "$S/prime-gate.sh" --no-record
+fi
 rm .prime/gate.sh
 if command -v npm >/dev/null 2>&1; then
   mkdir -p "$T/js" && cd "$T/js" && git init -q .
@@ -221,10 +226,10 @@ fi
 
 # --- codex wrapper + harness/plan argument guards ---
 cd "$T/app" || exit 1
-expect_code "codex: CLI missing -> 3 (hand to claude-code)" 3 env PATH=/usr/bin:/bin "$S/prime-codex.sh" run "x"
+expect_code "codex: CLI missing -> 3 (hand to claude-code)" 3 env PATH="$NOCLI_PATH" "$S/prime-codex.sh" run "x"
 expect_code "codex: usage -> 2" 2 "$S/prime-codex.sh" nope
 expect_code "bg: no goal -> 2" 2 "$S/prime-bg.sh"
-expect_code "bg: herdr missing -> 3 (herdr only: stop)" 3 env PATH=/usr/bin:/bin "$S/prime-bg.sh" "g"
+expect_code "bg: herdr missing -> 3 (herdr only: stop)" 3 env PATH="$NOCLI_PATH" "$S/prime-bg.sh" "g"
 mkdir -p "$T/hstub"; cat > "$T/hstub/herdr" <<'STUB'
 #!/bin/sh
 echo "$*" >> "$HLOG"
@@ -283,7 +288,7 @@ expect_code "team: bad name -> 2" 2 tm ask Bad_Name claude-code . "$T/brief.md"
 expect_code "team: unknown role -> 2" 2 tm ask n1 grok . "$T/brief.md"
 expect_code "team: unreadable brief -> 2" 2 tm ask n1 claude-code . "$T/nope.md"
 touch "$T/tstate.n9"; expect_code "team: herdr name owned by another run -> 2" 2 tm ask n9 claude-code . "$T/brief.md"
-expect_code "team: codex CLI missing -> 3 (hand to claude-code)" 3 env HERDR_ENV=1 HERDR_WORKSPACE_ID=w9 PATH=/usr/bin:/bin "$S/prime-team.sh" ask n2 codex . "$T/brief.md"
+expect_code "team: codex CLI missing -> 3 (hand to claude-code)" 3 env HERDR_ENV=1 HERDR_WORKSPACE_ID=w9 PATH="$NOCLI_PATH" "$S/prime-team.sh" ask n2 codex . "$T/brief.md"
 out="$(tm ask n1 claude-code . "$T/brief.md" 2>&1)"; rc=$?
 [ "$rc" = 0 ] && echo "$out" | grep -q "REPORT-OK n1" \
   && grep -q "^tab create --workspace w9 --cwd .*/app --label n1 --no-focus$" "$T/tlog" \

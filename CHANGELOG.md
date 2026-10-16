@@ -5,6 +5,18 @@ Based on Keep a Changelog; each mod in Prime Studio Mods is versioned independen
 
 ---
 
+## [1.1.1] - 2026-10-16
+
+### prime-ctbar 1.1.1
+- **แก้ / Fixed**: ในแอป desktop และ SDK ปุ่ม compact ไม่ค้างหมุนกับฝุ่นหลัง `/compact` เสร็จอีก: แอนิเมชันจบเมื่อ compaction เสร็จ แม้ host ไม่ตอบคำสั่ง `/compact` และมี timeout 2 นาทีเหมือนทางปกติ / on the desktop app and SDK hosts the button no longer spins over dust after `/compact` finished: the animation ends once a compaction lands even when the host never answers the command, with the same 2-minute timeout as the direct path
+- **แก้ / Fixed**: เสียงเทสดังเมื่อรันสคริปต์ในโฟลเดอร์ tests (`bash tests/run.sh`, `./tests/run.sh`), ผ่าน `timeout`, และ `node --test` / the test chime now fires for a suite script in a tests folder, behind `timeout`, and for `node --test`
+
+### prime-guard 1.1.1
+- **แก้ / Fixed**: เสียงเทสรู้จักคำสั่งเดียวกับ prime-ctbar 1.1.1 / the test chime recognises the same commands as prime-ctbar 1.1.1
+
+### prime-workflow 1.1.1
+- **แก้ / Fixed**: บน Windows `prime-plan apply` สร้าง worktree ได้ และ gate, merge, cleanup ของ autopilot ไม่ล้มเหลวทุกครั้งอีก (Node รันไฟล์ `.sh` ตรงๆ ไม่ได้ ตอนนี้รันผ่าน `bash`) / on Windows `prime-plan apply` creates worktrees and the autopilot's gate, merge and cleanup no longer always fail: a `.sh` runs through `bash`
+
 ## [1.1.0] - 2026-10-16
 
 ### prime-ctbar 1.1.0
