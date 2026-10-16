@@ -1,6 +1,6 @@
 {
   "name": "prime-ctbar",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Context window breakdown and prompt-cache countdown above the prompt with interactive compact button; /prime-ctbar (or /ctbar) toggles it.",
   "author": {
     "name": "settanun-prime (Prime Studio)",

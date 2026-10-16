@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import { EGRESS_COMMAND, PUBLISH, toolGuard } from '../hooks/guard'
 import { setIdentity } from '../hooks/detect'
+import { scanPublish } from '../hooks/publish'
 
 setIdentity({ users: [], hosts: [] })
 
@@ -25,4 +26,22 @@ test('a command that sends data out may not carry a name or a machine', () => {
   expect(toolGuard({ tool: 'Bash', command: 'ssh frank@devbox hostname' })).not.toBeNull()
   expect(toolGuard({ tool: 'Bash', command: 'git push origin main' })).toBeNull()
   expect(toolGuard({ tool: 'Bash', command: 'git commit -m "SSH setup for the LAN"' })).toBeNull()
+})
+
+test('a push scans what the new commits add, not the pusher own author line', async () => {
+
+  const asked: string[][] = []
+  const mail = ['somchai', '@', 'mail.test'].join('')
+  const exec = async (argv: string[]) => {
+    asked.push(argv)
+    if (argv[1] === 'log') {
+      // what git prints for the format the scan asks for; an author line would only appear if the format named one
+      const author = argv.some(a => a.includes('%ae')) ? `Somchai <${mail}>\n` : ''
+      return { exitCode: 0, stdout: `\u0001commit\n${author}fix typo\n\ndiff --git a/x b/x\n+++ b/x\n+hello\n` }
+    }
+    return { exitCode: argv.includes('@{u}') ? 1 : 0, stdout: '/repo' }
+  }
+  expect(await scanPublish(exec, 'git push -u origin feature')).toBe(null)
+  // a new branch: only what no remote branch has yet
+  expect(asked.find(a => a[1] === 'log')).toEqual(expect.arrayContaining(['HEAD', '--not', '--remotes']))
 })

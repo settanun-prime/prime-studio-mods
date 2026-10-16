@@ -16,7 +16,7 @@ const SECTIONS: Record<string, string> = {
 // ponytail: single-line frontmatter values only; a `description: >` block reads as ">"
 function front(src: string): Record<string, string> {
   const out: Record<string, string> = {}
-  const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(src)?.[1] ?? ''
+  const block = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(src)?.[1] ?? ''
   for (const line of block.split('\n')) {
     const i = line.indexOf(':')
     if (i > 0 && !/^\s/.test(line)) out[line.slice(0, i).trim()] = line.slice(i + 1).trim().replace(/^["']|["']$/g, '')
@@ -32,7 +32,8 @@ async function load($: EngineInterface): Promise<Agent[]> {
   const files = await $.fs.list('.claude/agents').catch(() => [])
   for (const f of files) {
     if (f.kind !== 'file' || !f.name.endsWith('.md')) continue
-    const fm = front(String(await $.fs.read(`.claude/agents/${f.name}`)))
+    // one unreadable file must not keep the pane from opening
+    const fm = front(String(await $.fs.read(`.claude/agents/${f.name}`).catch(() => '')))
     const name = fm.name ?? f.name.slice(0, -3)
     seen.add(name)
     out.push({ name, source: 'projectSettings', model: fm.model ?? null, description: fm.description ?? '', tokens: 0 })

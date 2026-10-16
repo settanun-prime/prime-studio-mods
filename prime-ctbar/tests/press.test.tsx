@@ -33,7 +33,8 @@ test('pressing the button squeezes the label, compacts once, and opens the label
 
   const pressed = $.ui.press({ plugin: 'prime-ctbar', key: 'compact' })
   await clock.advance(130) // two frames of the squeeze
-  expect(await ui.find({ type: 'Text', text: 'compact' })).toBeUndefined() // the label has shrunk
+  expect(await ui.find({ type: 'Text', text: 'compact' })).toBeUndefined() // the label has cracked
+  expect(await ui.find({ type: 'Text', text: '▓█▓▒'.repeat(25) })).toBeDefined() // and the bar is rubble
   await clock.advance(5000)
   await pressed
   expect(asked).toBe(1)

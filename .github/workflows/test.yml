@@ -32,8 +32,8 @@ jobs:
           calls=$(claude plugin validate prime-guard | grep -E 'calls:' | sed 's/.*calls: //')
           [ -n "$calls" ] || { echo '::error::validate printed no calls line for prime-guard'; exit 1; }
           echo "$calls"
-          bad=$(echo "$calls" | tr ',' '\n' | sed -E 's/^ *\$\.([a-z]+).*/\1/' | sort -u | grep -vxE 'state|ui|clock|command|process' || true)
-          [ -z "$bad" ] || { echo "::error::prime-guard calls outside state, ui, clock, command, process: $bad"; exit 1; }
+          bad=$(echo "$calls" | sed -E 's/\([^)]*\)//g' | tr ',' '\n' | sed -E 's/^ *\$\.([a-z]+).*/\1/' | sed -E 's/^ +| +$//g' | sort -u | grep -vxE 'state|ui|clock|command|process|audio' || true)
+          [ -z "$bad" ] || { echo "::error::prime-guard calls outside state, ui, clock, command, process, audio: $bad"; exit 1; }
       - name: JSON manifests parse
         run: for f in .claude-plugin/*.json .agents/plugins/*.json */.claude-plugin/plugin.json */.codex-plugin/plugin.json */hooks/hooks.json; do python3 -m json.tool "$f" > /dev/null; done
       - name: Codex install

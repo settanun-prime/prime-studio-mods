@@ -61,9 +61,9 @@ claude plugin uninstall prime-guard@prime-studio-mods
 
 | Mod | Version | Command | What it does |
 |---|---|---|---|
-| `prime-guard` | 1.0.0 | `/prime-guard [redact\|block\|off]`, `/prime-blur [on\|off\|record]` | Redacts personal data it detects before it is sent to Claude, and masks it on screen (hover to reveal; in recording mode hovering does not reveal it) |
-| `prime-ctbar` | 1.0.0 | `/prime-ctbar` (or `/ctbar`) | A bar above the prompt showing context window use by category and the time left on the prompt cache with interactive compact button |
-| `prime-agents-panel` | 1.0.0 | `/prime-agents-panel` | A side pane listing project, user and plugin agents, each with a run button |
+| `prime-guard` | 1.1.0 | `/prime-guard [redact\|block\|off\|sound on\|off]`, `/prime-blur [on\|off\|record]` | Redacts personal data it detects before it is sent to Claude, and masks it on screen (hover to reveal; in recording mode hovering does not reveal it). Plays an 8-bit jingle when a test run passes and a buzz when it fails, a turn errors or the guard refuses a call |
+| `prime-ctbar` | 1.1.0 | `/prime-ctbar` (or `/ctbar`), `/prime-ctbar sound [on\|off]` | A bar above the prompt showing context window use by category and the time left on the prompt cache with interactive compact button (the bar crumbles to dust while it compacts). Plays an 8-bit jingle when a test run passes and a buzz when it fails or a turn errors |
+| `prime-agents-panel` | 1.0.1 | `/prime-agents-panel` | A side pane listing project, user and plugin agents, each with a run button |
 | `prime-workflow` | 1.0.0 | none needed (just ask for the goal), or `/prime-plan`, `/prime-review`, `/prime-merge` and the other `/prime-*` commands | The Prime workflow on autopilot: describe a goal in plain words and Claude Opus/Sonnet/Haiku plus the Codex CLI plan it, build it in one worktree per stream, review it and merge it into your local base through a gate, with no slash commands needed ([README](prime-workflow/README.md#english), [diagram](prime-workflow/docs/workflow-diagram.md)) |
 
 `/prime-ctbar` and `/prime-agents-panel` toggle on and off. `/prime-blur` toggles too, or takes `on`, `off` or `record`. `/prime-guard` takes a mode name.
@@ -111,9 +111,9 @@ The mode and the mask settings are not saved to disk and start as `redact` with 
 
 Any other argument to `/prime-blur` changes nothing and prints a usage line.
 
-The status line shows `PDPA: <mode>`, with ` · REC` added in recording mode (for example `PDPA: redact · REC`). When the mod redacts a prompt or a message the conversation keeps, or holds back a prompt, a toast reports how many items it found. Redaction of `CLAUDE.md`, other context blocks and attachments such as files mentioned with `@` is silent. A notice counts only what the rules matched: no notice does not mean that no personal data was sent, and a notice does not mean that the text is now clean.
+The status line shows `Guard: <mode>`, with ` · REC` added in recording mode (for example `Guard: redact · REC`). When the mod redacts a prompt or a message the conversation keeps, or holds back a prompt, a toast reports how many items it found. Redaction of `CLAUDE.md`, other context blocks and attachments such as files mentioned with `@` is silent. A notice counts only what the rules matched: no notice does not mean that no personal data was sent, and a notice does not mean that the text is now clean.
 
-**Check that it is running.** After Claude Code starts, the status line should show `PDPA: redact` or `PDPA: block`. If it does not, the mod did not load and nothing is redacted; run `claude --debug` to see why. Headless runs (such as `claude -p`) show no status line, so check the debug output before you rely on the guard there.
+**Check that it is running.** After Claude Code starts, the status line should show `Guard: redact` or `Guard: block`. If it does not, the mod did not load and nothing is redacted; run `claude --debug` to see why. Headless runs (such as `claude -p`) show no status line, so check the debug output before you rely on the guard there.
 
 ### Recording or sharing your screen
 
@@ -186,9 +186,9 @@ The sensitive categories follow section 26 of the Personal Data Protection Act B
 ### Where your data goes
 
 - Detection and redaction run inside the Claude Code process: on your machine for a local session, or wherever a cloud or remote session runs. In a cloud or remote session the original values are already on that machine before the mod runs; the mod only changes what is sent from there to the model.
-- `prime-guard` and `prime-ctbar` make no network, external process, model or MCP calls of their own. `prime-agents-panel` starts a subagent (`$.agent.spawn`) only when you press `▶ run`; that subagent runs like any other agent.
+- `prime-guard` and `prime-ctbar` make no network, model or MCP calls of their own. They do run local programs: `prime-guard` runs `whoami`, `hostname` and `git` (to learn the names to hide and to scan what a push publishes), and on Windows both run `powershell.exe` to play their sound clips. Turn the sounds off with `/prime-guard sound off` and `/prime-ctbar sound off`; with both mods installed each plays its own clip, so you may want one of them off. `prime-agents-panel` starts a subagent (`$.agent.spawn`) only when you press `▶ run`; that subagent runs like any other agent.
 - `prime-workflow` has no hook code. Its commands run its own scripts (git, node, `claude mcp list`, and `gh` for the `/prime-doctor` sign-in check and `/prime-merge --apply --pr`) and start implementer, integrator and reviewer subagents, which run like any other agent. When the Codex CLI is installed, `prime-codex.sh` runs it, and it calls OpenAI with your own login. It also adds two remote MCP servers, Context7 (`https://mcp.context7.com/mcp`) and Perplexity (`https://api.perplexity.ai/mcp`, sign-in required); queries the agents send to a connected server go to that service.
-- On every push and pull request, CI runs two local-only checks: a text search of every mod's hook code for network, process, model and MCP calls and for `fetch(`, and a check that every engine call on the `calls:` line printed by `claude plugin validate prime-guard` is an allowlisted call. Neither check proves anything about other mods or about Claude Code itself. Both checks, and what they miss, are described in one place: [What CI runs](CONTRIBUTING.md#what-ci-runs).
+- On every push and pull request, CI runs two local-only checks: a text search of every mod's hook code for network, model and MCP calls and for `fetch(`, and a check that every engine call on the `calls:` line printed by `claude plugin validate prime-guard` is an allowlisted call. Neither check proves anything about other mods or about Claude Code itself. Both checks, and what they miss, are described in one place: [What CI runs](CONTRIBUTING.md#what-ci-runs).
 - The redacted conversation is still sent to your configured model provider (Anthropic by default, or for example Amazon Bedrock or Google Cloud Vertex AI), like any Claude Code conversation.
 - This mod does not change how your configured model provider (Anthropic by default) stores, retains or uses what it receives; that is set by your agreement and settings with that provider.
 - Redaction applies to the copy the model reads: each detected occurrence is replaced with a placeholder before it is sent to the model. The same value can still be sent if it also appears somewhere the guard does not rewrite (see [Limits](#limits)), and anything the rules miss is sent as is.
@@ -247,7 +247,7 @@ cd prime-studio-mods
 3. Run the main CI checks. The first command should print nothing. In the output of `claude plugin validate prime-guard`, the `calls:` line should list only allowlisted calls.
 
 ```bash
-grep -rnE '\$\.(http|process|model|mcp)\b|\bfetch\(' --include='*.ts' --include='*.tsx' --exclude-dir=tests */hooks
+grep -rnE '\$\.(http|model|mcp)\b|\bfetch\(' --include='*.ts' --include='*.tsx' --exclude-dir=tests */hooks
 claude plugin validate .
 claude plugin validate prime-guard
 claude plugin test prime-guard

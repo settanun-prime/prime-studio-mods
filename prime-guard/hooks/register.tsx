@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import { findSensitive, identity, issuedTag, learnIdentity, newTags, plan, redact, scrub, secretCount } from './detect'
-import { PUBLISH, toolGuard } from './guard'
+import { PUBLISH, TEST_CMD, toolGuard } from './guard'
 import { scanPublish } from './publish'
 
 // Every row the conversation keeps passes session.append first, so rewriting there keeps
@@ -14,6 +14,7 @@ const isBlurOn = atom({ plugin: 'prime-guard', key: 'isBlurOn' } as const, true)
 // recording mode: the mask stays on and hover no longer reveals it
 const isRecording = atom({ plugin: 'prime-guard', key: 'isRecording' } as const, false)
 const tagSuffix = atom({ plugin: 'prime-guard', key: 'tagSuffix' } as const, '')
+const isSoundOn = atom({ plugin: 'prime-guard', key: 'isSoundOn' } as const, true)
 
 const MODES = ['redact', 'block', 'off'] as const
 type Mode = (typeof MODES)[number]
@@ -62,6 +63,22 @@ async function learn($: EngineInterface) {
   learnIdentity({ users: [account, gitName], hosts: [host, domain] })
 }
 
+// 8-bit chimes so the person can look away while Claude works: a jingle when tests pass, a buzz when they fail, a turn
+// errors or the guard refuses something
+let lastChime = Number.NEGATIVE_INFINITY
+async function chime($: EngineInterface, clip: 'pass' | 'fail') {
+  if (!(await read($, isSoundOn))) return
+  const now = await $.clock.now()
+  if (now - lastChime < 1000) return // parallel test runs ending together: one chime
+  lastChime = now
+  const root = $.plugin.root
+  // a Windows terminal has no player behind $.audio.play; Windows' own SoundPlayer plays a WAV
+  const played = /^(?:[A-Za-z]:|\\\\)/.test(root)
+    ? $.process.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', `(New-Object Media.SoundPlayer '${`${root}/sfx/${clip}.wav`.replace(/'/g, "''")}').PlaySync()`], { timeoutMs: 10_000 })
+    : $.audio.play({ asset: `sfx/${clip}.wav` })
+  void played.catch(() => {}) // no player is no reason to fail a tool call
+}
+
 async function showStatus($: EngineInterface) {
   $.ui.status(`Guard: ${await read($, guardMode)}${(await read($, isRecording)) ? ' · REC' : ''}`)
 }
@@ -77,10 +94,18 @@ function draw($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']
   const items = parts.flatMap((chunk, ci) =>
     'pieces' in chunk
       ? chunk.pieces.map((p, pi) =>
-          p.isRaw ? (
+          !p.hidden ? (
             <Text key={`${id}-${ci}-${pi}`}>{p.text}</Text>
-          ) : (
+          ) : isLocked ? (
             <Text key={`${id}-${ci}-${pi}`} {...BLUR}>{p.text}</Text>
+          ) : (
+            // a hover cannot recolour a Text, so a readable copy lies over the mask, shown only while the pointer is on it
+            <Box key={`${id}-${ci}-${pi}`}>
+              <Text {...BLUR}>{p.text}</Text>
+              <Box position="absolute" top={0} left={0} display="none" hover={{ display: 'flex' }}>
+                <Text {...REVEAL}>{p.text}</Text>
+              </Box>
+            </Box>
           ),
         )
       : [<Text key={`${id}-${ci}`}>{chunk.md}</Text>],
@@ -112,6 +137,11 @@ async function guardPrompt($: EngineInterface, e: any, next: (e: any) => Promise
     $.ui.toast(`Prime Guard: รูป/ไฟล์แนบ ${attached} รายการไม่ถูกตรวจ ดูให้แน่ใจว่าไม่มีข้อมูลส่วนบุคคล`)
   }
   if (found === 0) return next(e)
+  // the engine does not apply a rewrite of a slash command's line: say so instead of claiming a redaction
+  if (e.command && mode !== 'block') {
+    $.ui.toast(`Prime Guard: พบข้อมูลส่วนบุคคล ${found} รายการในอาร์กิวเมนต์ของ /${e.command.name} ซึ่งปกปิดไม่ได้ ใช้ /prime-guard block เพื่อไม่ส่ง`)
+    return next(e)
+  }
   if (mode === 'block') {
     $.ui.toast(`Prime Guard: พบข้อมูลส่วนบุคคล ${found} รายการ ไม่ส่งพรอมต์นี้ให้ Claude`)
     return { drop: 'Prime Guard blocked this prompt: it contains personal data. Edit it, or run /prime-guard redact | off.' }
@@ -122,6 +152,12 @@ async function guardPrompt($: EngineInterface, e: any, next: (e: any) => Promise
 
 const runGuard = async ($: EngineInterface, e: { args: string }) => {
   const arg = e.args.trim().toLowerCase()
+  const [word, value] = arg.split(/\s+/)
+  if (word === 'sound') {
+    if (value === 'on' || value === 'off') await update($, isSoundOn, () => value === 'on')
+    else if (value !== undefined) return { text: 'Usage: /prime-guard sound [on | off]' }
+    return { text: `เสียงแจ้งเตือน (เทสผ่าน/ล้มเหลว, error, guard ปฏิเสธ): ${(await read($, isSoundOn)) ? 'เปิด' : 'ปิด'}` }
+  }
   if (arg === 'names') {
     const { users, hosts } = identity()
     return {
@@ -161,12 +197,16 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'prime-guard',
-      description: 'Prime guard: redact | block | off (no argument shows the current mode)',
+      description: 'Prime guard: redact | block | off | sound on|off (no argument shows the current mode)',
     })
     await $.command.register({
       name: 'prime-blur',
       description: 'Prime blur in the transcript: on | off | record (record = no hover reveal, for screen recording)',
     })
+    // the short names the README and the refusal texts give; each is answered by the same handler below
+    for (const [name, of] of [['guard', 'prime-guard'], ['pdpa-guard', 'prime-guard'], ['blur', 'prime-blur'], ['pdpa-blur', 'prime-blur']]) {
+      await $.command.register({ name, description: `Alias of /${of}` }).catch(() => {}) // a name another command holds stays theirs
+    }
     await showStatus($)
     void learn($).catch(() => {})
     return next(e)
@@ -190,7 +230,7 @@ export const register: Register = on => {
       $.ui.toast('Prime Guard: ตรวจพรอมต์ไม่สำเร็จ ไม่ส่งให้ Claude (ปิดด้วย /prime-guard off)')
       return { drop: 'Prime Guard could not check this prompt, so it was not sent. Try again, or run /prime-guard off.' }
     }
-  })
+  }).catch(($, e, next) => (next.called ? next(e) : { drop: 'Prime Guard could not check this prompt in time, so it was not sent. Try again, or run /prime-guard off.' }))
 
   // everything the conversation keeps: tool results, hook context, deliveries. Not the model's
   // own responses or compaction summaries (written by the model from text already redacted, so
@@ -241,8 +281,20 @@ export const register: Register = on => {
     }
     if (verdict) {
       $.ui.toast('Prime Guard: ปฏิเสธการเรียกเครื่องมือที่แตะไฟล์ลับหรือส่งข้อมูลออกนอกเครื่อง')
+      void chime($, 'fail')
       return { deny: verdict.reason }
     }
+    const r = await next(e)
+    const { command, run_in_background } = e as { command?: unknown; run_in_background?: unknown }
+    // a background run answers at once, before any test has finished
+    if ((e.tool === 'Bash' || e.tool === 'PowerShell') && typeof command === 'string' && !run_in_background && !r.deny && TEST_CMD.test(command)) {
+      void chime($, r.isError ? 'fail' : 'pass')
+    }
+    return r
+  }).catch(($, e, next) => (next.called ? next(e) : { deny: 'Prime Guard could not check this tool call in time, so it was refused. Try again, or have the user run /prime-guard off.' }))
+
+  on('turn.complete', async ($, e, next) => {
+    if (e.reason === 'error') void chime($, 'fail')
     return next(e)
   })
 

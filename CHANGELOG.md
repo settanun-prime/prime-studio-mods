@@ -5,6 +5,29 @@ Based on Keep a Changelog; each mod in Prime Studio Mods is versioned independen
 
 ---
 
+## [1.1.0] - 2026-10-16
+
+### prime-ctbar 1.1.0
+- **ใหม่ / New**: กดปุ่ม compact แล้วแถบ context สั่น แตก และสลายเป็นฝุ่น ระหว่าง compact ฝุ่นหมุนรอ แล้วแถบประกอบกลับเมื่อเสร็จ / pressing compact shakes the bar, cracks it and crumbles it to dust, then builds it back when the compaction answers
+- **ใหม่ / New**: เสียง 8-bit เมื่อรันเทสผ่าน และเสียงเตือนเมื่อเทสล้มเหลวหรือ turn จบด้วย error; `/prime-ctbar sound on|off` / 8-bit jingle when a test run passes, buzz when it fails or a turn errors
+- **แก้ / Fixed**: `/ctbar` และ `/context-bar` ใช้งานได้จริง (เดิมไม่ได้ลงทะเบียน) / the aliases are registered now
+- **แก้ / Fixed**: hot reload ระหว่างแอนิเมชันไม่ทำให้ปุ่มค้างอีก / a reload mid-animation no longer leaves the button dead
+- **แก้ / Fixed**: compact ที่เกิน 2 นาทีไม่สั่ง `/compact` ซ้อน; error ครั้งเดียวไม่ทำให้ทุกครั้งต่อไปไปทาง `/compact`; ยกเลิก timer ที่ค้าง / a timed-out compaction no longer starts a second one, one failure no longer switches every later press to `/compact`, the timeout timer is cancelled
+- **แก้ / Fixed**: พิมพ์ slash command ไม่ทำให้ cache ค้างที่ `live` / a slash command no longer leaves the cache shown as `live`
+- **แก้ / Fixed**: argument ที่ไม่รู้จักแสดงวิธีใช้แทนการซ่อนแถบ / an unknown argument shows usage instead of toggling the bar
+
+### prime-guard 1.1.0
+- **ใหม่ / New**: เสียง 8-bit เมื่อรันเทสผ่าน และเสียงเตือนเมื่อเทสล้มเหลว turn error หรือ guard ปฏิเสธการเรียกเครื่องมือ; `/prime-guard sound on|off`
+- **แก้ / Fixed**: blur พรางเฉพาะค่าที่ตรวจพบ ไม่ใช่ทั้งบรรทัด และ hover เปิดดูได้จริง (ยกเว้นโหมด record) / only the detected value is masked, and hover reveals it outside recording mode
+- **แก้ / Fixed**: `git push` ไม่ถูกปฏิเสธเพราะชื่อและอีเมลผู้ commit ของตัวเอง และ branch ใหม่สแกนเฉพาะ commit ที่ยังไม่มีบน remote / a push is no longer refused for the pusher's own author line; a new branch scans only commits no remote has
+- **แก้ / Fixed**: `PRIME_GUARD_NAMES` / `PRIME_GUARD_KEEP` ตามที่ `/prime-guard names` บอกใช้งานได้ (ชื่อเดิม `PDPA_GUARD_*` ยังใช้ได้)
+- **แก้ / Fixed**: `/guard`, `/pdpa-guard`, `/blur`, `/pdpa-blur` ลงทะเบียนแล้ว
+- **แก้ / Fixed**: slash command ที่มีข้อมูลส่วนบุคคลใน argument ไม่ขึ้นข้อความว่าปกปิดแล้วอีก (engine ไม่รับการแก้ข้อความของ command) แต่เตือนแทน / no false "redacted" toast for slash-command arguments; a warning instead
+- **แก้ / Fixed**: prompt.submit และ tool.call ปิดกั้นไว้ก่อนเมื่อ hook หมดเวลา (`.catch`) / both fail closed on a hook timeout
+
+### prime-agents-panel 1.0.1
+- **แก้ / Fixed**: ไฟล์ agent ที่อ่านไม่ได้หรือขึ้นต้นด้วย BOM ไม่ทำให้ pane ว่างหรือชื่อผิด / an unreadable or BOM-led agent file no longer empties the pane or loses its name
+
 ## [1.0.0] - 2026-10-16
 
 ### prime-guard 1.0.0

@@ -31,10 +31,12 @@ export async function scanPublish(exec: Run, cmd: string): Promise<string | null
   }
   if (top.exitCode !== 0) return null
 
-  // only the commits that are not on the remote yet when a remote branch is known; all of them otherwise
+  // only the commits that are not on the remote yet: past the upstream, or past every remote branch for a new branch
   const up = await run(['git', 'rev-parse', '--verify', '--quiet', '@{u}'])
-  const range = up.exitCode === 0 ? ['@{u}..HEAD'] : ['HEAD']
-  const log = await run(['git', 'log', '-p', '--no-color', '--no-ext-diff', '--format=%x01commit%n%an <%ae>%n%cn <%ce>%n%B', ...range])
+  const range = up.exitCode === 0 ? ['@{u}..HEAD'] : ['HEAD', '--not', '--remotes']
+  // not the author and committer lines: they are the person pushing, whose name and email every commit carries by design,
+  // and scanning them refused every push
+  const log = await run(['git', 'log', '-p', '--no-color', '--no-ext-diff', '--format=%x01commit%n%B', ...range])
   if (log.exitCode !== 0) return null
 
   const text = log.stdout

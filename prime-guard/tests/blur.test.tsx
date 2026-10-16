@@ -12,6 +12,11 @@ test('draws a masked span on terminal and desktop', async $ => {
       props: { text: `contact ${MAIL} today`, isFirstOfReply: true },
     })
     expect((await ui.find({ type: 'Text', text: new RegExp(MAIL) }))?.props).toMatchObject(MASK)
+    // only the value is masked, not the words around it
+    expect((await ui.find({ type: 'Text', text: /contact/ }))?.props).not.toMatchObject(MASK)
+    // and a readable copy waits for the hover
+    const copies = await ui.findAll({ type: 'Text', text: new RegExp(MAIL) })
+    expect(copies.some(t => (t.props as { color?: string }).color === '#ffffff')).toBe(true)
     await ui.unmount()
   }
 })

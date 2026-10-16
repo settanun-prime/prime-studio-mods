@@ -153,8 +153,8 @@ const NOT_A_NAME = 'จ้าง|หน้า|ก(?:รัฐ|เทศ|สม�
 // ---- who and where ------------------------------------------------------------------------------
 // The names this machine uses for the user and for itself are read from the environment and learned
 // at session start (whoami, hostname, git user.name), then hidden wherever they appear: a bare
-// `ls -l` owner column, a prompt, a log line. Extra names: PDPA_GUARD_NAMES=a,b. Names to leave
-// visible: PDPA_GUARD_KEEP=a,b.
+// `ls -l` owner column, a prompt, a log line. Extra names: PRIME_GUARD_NAMES=a,b. Names to leave
+// visible: PRIME_GUARD_KEEP=a,b. The older PDPA_GUARD_* names still work.
 type Names = { users: string[]; hosts: string[] }
 let learned: Names = { users: [], hosts: [] }
 let override: Names | null = null
@@ -169,8 +169,8 @@ const clean = (xs: string[], keep: Set<string>) =>
 
 export function identity(): Names {
   if (override) return override
-  const keep = new Set(csv(envVar('PDPA_GUARD_KEEP')).map(x => x.toLowerCase()))
-  const users = [envVar('USERNAME'), envVar('USER'), envVar('LOGNAME'), lastPart(envVar('USERPROFILE')), lastPart(envVar('HOME')), ...csv(envVar('PDPA_GUARD_NAMES')), ...learned.users]
+  const keep = new Set(csv(envVar('PRIME_GUARD_KEEP') || envVar('PDPA_GUARD_KEEP')).map(x => x.toLowerCase()))
+  const users = [envVar('USERNAME'), envVar('USER'), envVar('LOGNAME'), lastPart(envVar('USERPROFILE')), lastPart(envVar('HOME')), ...csv(envVar('PRIME_GUARD_NAMES') || envVar('PDPA_GUARD_NAMES')), ...learned.users]
   const hosts = [envVar('COMPUTERNAME'), envVar('HOSTNAME'), envVar('USERDOMAIN'), ...learned.hosts]
   return { users: clean(users, keep), hosts: clean(hosts, keep) }
 }
