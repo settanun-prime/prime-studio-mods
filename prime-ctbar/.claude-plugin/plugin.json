@@ -1,0 +1,13 @@
+{
+  "name": "prime-ctbar",
+  "version": "1.0.0",
+  "description": "Context window breakdown and prompt-cache countdown above the prompt with interactive compact button; /prime-ctbar (or /ctbar) toggles it.",
+  "author": {
+    "name": "settanun-prime (Prime Studio)",
+    "url": "https://github.com/settanun-prime"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/settanun-prime/prime-studio-mods",
+  "repository": "https://github.com/settanun-prime/prime-studio-mods",
+  "types": "./types/index.d.ts"
+}

@@ -1,0 +1,30 @@
+{
+  "name": "prime-workflow",
+  "version": "1.0.0",
+  "description": "Prime multi-agent autopilot for Codex and Claude Code: a reviewed plan, one git worktree per feature with port/env/DB isolation, a lint/typecheck/test + reviewer gate before merge, dry-run merge and cleanup scripts, SDLC phases with exit criteria; Context7 and Perplexity MCP (both optional, with web search fallback).",
+  "author": {
+    "name": "settanun-prime (Prime Studio)",
+    "url": "https://github.com/settanun-prime"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/settanun-prime/prime-studio-mods",
+  "repository": "https://github.com/settanun-prime/prime-studio-mods",
+  "keywords": ["prime", "workflow", "multi-agent", "worktree", "review-gate", "sdlc", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Prime workflow",
+    "shortDescription": "Autopilot: plan, build in worktrees, check, review, merge",
+    "longDescription": "Turns a goal into a reviewed plan, then drives it with the prime-run.mjs harness: isolated git worktrees per stream, a lint/typecheck/test gate plus a recorded review verdict, a local merge in plan order and a final verify of the base. It never pushes. Each SDLC phase has an exit criterion before the next one starts.",
+    "developerName": "settanun-prime (Prime Studio)",
+    "category": "Coding",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/settanun-prime/prime-studio-mods",
+    "defaultPrompt": [
+      "Build this with Prime on autopilot.",
+      "Plan this goal with Prime and wait for my OK.",
+      "Run the Prime review gate on this branch.",
+      "Show the Prime merge order and predicted conflicts."
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "prime-agents-panel",
+  "version": "1.0.0",
+  "description": "Side pane listing project, user and plugin agents with a run button each; /prime-agents-panel toggles it.",
+  "author": {
+    "name": "settanun-prime (Prime Studio)",
+    "url": "https://github.com/settanun-prime"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/settanun-prime/prime-studio-mods",
+  "repository": "https://github.com/settanun-prime/prime-studio-mods",
+  "types": "./types/index.d.ts"
+}

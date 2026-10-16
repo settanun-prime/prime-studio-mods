@@ -1,0 +1,49 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "prime-studio-mods",
+  "owner": {
+    "name": "settanun-prime (Prime Studio)",
+    "url": "https://github.com/settanun-prime"
+  },
+  "metadata": {
+    "description": "Prime Studio mods for Claude Code: Prime Guard (PDPA & security), Prime Context Bar (prime-ctbar), agents panel, Prime multi-agent workflow."
+  },
+  "plugins": [
+    {
+      "name": "prime-guard",
+      "source": "./prime-guard",
+      "description": "Security & PDPA guard: redacts Thai and international personal data before sending, masks machine identity on screen. Local detection, no network calls of its own. Keeps secret files closed, refuses publishing personal data or secrets.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "category": "security",
+      "keywords": ["guard", "pdpa", "thailand", "privacy", "pii", "redaction", "guardrail", "secrets"]
+    },
+    {
+      "name": "prime-ctbar",
+      "source": "./prime-ctbar",
+      "description": "Context window breakdown and prompt-cache countdown above the prompt with interactive compact button; /prime-ctbar (or /ctbar) toggles it.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "category": "development",
+      "keywords": ["context", "cache", "statusline", "compact", "ctbar"]
+    },
+    {
+      "name": "prime-agents-panel",
+      "source": "./prime-agents-panel",
+      "description": "Side pane listing project, user and plugin agents with a run button each; /prime-agents-panel toggles it.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "category": "development",
+      "keywords": ["agents", "subagents", "panel"]
+    },
+    {
+      "name": "prime-workflow",
+      "source": "./prime-workflow",
+      "description": "Prime multi-agent workflow autopilot for Claude Code: describe a goal and it plans, builds in parallel git worktrees with a herdr agent team (Claude Code, Codex CLI, Hermes Agent), checks, reviews, merges locally and verifies, with no slash commands.",
+      "version": "1.0.0",
+      "license": "MIT",
+      "category": "development",
+      "keywords": ["prime", "workflow", "multi-agent", "worktree", "review-gate", "mcp"]
+    }
+  ]
+}
