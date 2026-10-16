@@ -7,7 +7,7 @@ Claude Code plugins from Prime Studio.
 | `prime-guard` | Redacts Thai and international personal data before it is sent, masks it on screen, keeps secret files closed, refuses publishing personal data or secrets | 1.1.0 |
 | `prime-ctbar` | Context window breakdown and prompt-cache countdown with interactive compact button | 1.1.0 |
 | `prime-agents-panel` | Side pane listing project, user and plugin agents with a run button each | 1.0.1 |
-| `prime-workflow` | Multi-agent workflow autopilot with git worktree isolation, herdr agent team, and review gate | 1.0.0 |
+| `prime-workflow` | Multi-agent workflow autopilot with git worktree isolation, herdr agent team, review gate, and `/op-mode` rigor router | 1.1.0 |
 
 Install:
 

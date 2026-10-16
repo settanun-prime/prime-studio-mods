@@ -1,6 +1,6 @@
 {
   "name": "prime-workflow",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Prime multi-agent autopilot for Claude Code: describe a goal and it plans, builds in parallel git worktrees with a herdr agent team (Claude Code, the Codex CLI and Hermes Agent), checks, reviews, merges locally and verifies, with no slash commands. One git worktree per feature with port/env/DB isolation; a lint/typecheck/test + reviewer gate before merge; dry-run merge and cleanup scripts; Context7 and Perplexity MCP (both optional, with web search fallback).",
   "author": {
     "name": "settanun-prime (Prime Studio)",

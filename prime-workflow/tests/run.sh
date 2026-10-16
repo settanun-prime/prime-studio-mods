@@ -6,6 +6,8 @@ S="$(cd "$(dirname "$0")/../scripts" && pwd)"
 T="$(mktemp -d "${TMPDIR:-/tmp}/prime-tests.XXXXXX")"
 trap 'rm -rf "$T"' EXIT
 export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL="$T/gitconfig" PRIME_DOCTOR_OFFLINE=1 TMPDIR="$T"
+# never the user's /setup-op choices: tests expect the shipped defaults unless they write their own
+export OP_CONFIG="$T/op-models.json"
 unset PRIME_BASE PRIME_GATE_CMD CLAUDE_PLUGIN_ROOT 2>/dev/null || true
 git config --global user.name "prime test"; git config --global user.email "prime@test.invalid"
 git config --global init.defaultBranch main; git config --global advice.detachedHead false
@@ -144,6 +146,8 @@ fi
 expect_code "ledger agent rejects unknown role" 2 "$S/prime-ledger.sh" agent nobody --turns 3
 expect_code "ledger agent requires integer turns" 2 "$S/prime-ledger.sh" agent codex --turns x
 expect_code "ledger agent records" 0 "$S/prime-ledger.sh" agent codex --turns 12 --status ok
+expect_code "ledger decision needs --why" 2 "$S/prime-ledger.sh" decision "use a table"
+expect_code "ledger decision records" 0 "$S/prime-ledger.sh" decision "use a table" --why "3 call sites branch on kind"
 
 if command -v node >/dev/null 2>&1; then
   # --- report ---
@@ -154,6 +158,7 @@ if command -v node >/dev/null 2>&1; then
   expect_code "report --strict fails over budget" 1 node "$S/prime-report.mjs" --strict
   node "$S/prime-report.mjs" --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.exit(j.agents["claude-code"].overBudget===1&&j.merges.merged>=1?0:1)})' \
     && ok "report --json counts over-budget + merges" || bad "report json"
+  node "$S/prime-report.mjs" | grep -q "use a table -- 3 call sites branch on kind" && ok "report lists decisions" || bad "report decisions" "$(node "$S/prime-report.mjs")"
   "$S/prime-ledger.sh" agent codex --turns 0123 --note 0123 >/dev/null 2>&1 && tail -n 1 "$LED" | node -e 'const e=JSON.parse(require("fs").readFileSync(0,"utf8"));process.exit(e.turns===123&&e.note==="0123"?0:1)' \
     && ok "ledger: leading-zero digits stay valid JSON" || bad "ledger: leading-zero digits stay valid JSON" "$(tail -n 1 "$LED")"
 
@@ -238,6 +243,10 @@ grep -q "^agent start prime-app-[0-9]* --kind claude --pane w9:p1 .*--agent prim
 sleep 1; : > "$T/hlog"; HLOG="$T/hlog" PATH="$T/hstub:$PATH" "$S/prime-bg.sh" "ship it" >/dev/null 2>&1
 grep -q "^agent start prime-app-[0-9]* --kind claude .*--agent prime-workflow:prime-orchestrator --permission-mode auto$" "$T/hlog" \
   && ok "bg: hub gets team.claudeArgs when no claude args are given" || bad "bg default hub args" "$(cat "$T/hlog")"
+node "$S/op-config.mjs" set hub=fable:low >/dev/null
+sleep 1; : > "$T/hlog"; HLOG="$T/hlog" PATH="$T/hstub:$PATH" "$S/prime-bg.sh" "ship it" >/dev/null 2>&1
+grep -q "^agent start prime-app-[0-9]* --kind claude .*--agent prime-workflow:prime-orchestrator --model fable --effort low --permission-mode auto$" "$T/hlog"   && ok "bg: hub gets its /setup-op model and effort" || bad "bg op hub args" "$(cat "$T/hlog")"
+rm -f "$OP_CONFIG"
 
 # --- team (herdr stub: tabs, agent start/prompt/get, hermes one-shot via pane run) ---
 mkdir -p "$T/tstub"; cat > "$T/tstub/herdr" <<'STUB'
@@ -283,6 +292,12 @@ out="$(tm ask n1 claude-code . "$T/brief.md" 2>&1)"; rc=$?
 : > "$T/tlog"; out="$(tm ask n1 claude-code . - < "$T/brief.md" 2>&1)"; rc=$?
 [ "$rc" = 0 ] && ! grep -q "^tab create\|^agent start" "$T/tlog" && grep -q "^agent prompt n1 " "$T/tlog" \
   && ok "team: a live teammate is reused (keeps its context)" || bad "team reuse (exit $rc)" "$out$(cat "$T/tlog")"
+node "$S/op-config.mjs" set builder=opus:max codex=gpt-op:low >/dev/null
+: > "$T/tlog"; out="$(tm ask n10 claude-code . "$T/brief.md" 2>&1)"; rc=$?
+[ "$rc" = 0 ] && grep -q "^agent start n10 --kind claude .* -- --agent prime-workflow:claude-code --model opus --effort max --permission-mode auto$" "$T/tlog"   && ok "team: /setup-op model and effort reach a claude-code teammate" || bad "team op claude (exit $rc)" "$out$(cat "$T/tlog")"
+out="$(tm ask n11 codex . "$T/brief.md" 2>&1)"; rc=$?
+[ "$rc" = 0 ] && grep -q "^agent start n11 --kind codex .* -m gpt-op -c model_reasoning_effort=low --approve-for-me$" "$T/tlog"   && ok "team: /setup-op codex choice beats the plugin config" || bad "team op codex (exit $rc)" "$out$(cat "$T/tlog")"
+rm -f "$OP_CONFIG"
 out="$(tm ask n2 codex . "$T/brief.md" 2>&1)"; rc=$?
 [ "$rc" = 0 ] && grep -q "^agent start n2 --kind codex --pane w9:p2 --timeout 120000 -- --add-dir .*/prime/team -m gpt-6.1-sol -c model_reasoning_effort=xhigh --approve-for-me$" "$T/tlog" \
   && ok "team: codex teammate gets model, effort and --approve-for-me" || bad "team codex wiring (exit $rc)" "$out$(cat "$T/tlog")"
@@ -309,7 +324,7 @@ expect_code "team: blocked teammate -> 4" 4 env HBLOCK=1 HLOG="$T/tlog" HSTATE="
 : > "$T/tlog"; expect_code "team: tab that will not close -> 1, state kept" 1 env HCLOSEFAIL=1 HLOG="$T/tlog" HERDR_ENV=1 HERDR_WORKSPACE_ID=w9 PATH="$T/tstub:$PATH" "$S/prime-team.sh" stop n1
 [ -f "$(git rev-parse --git-common-dir)/prime/team/n1.tab" ] && ok "team: failed stop keeps the teammate's state" || bad "team failed stop dropped state"
 : > "$T/tlog"; tm stop --all >/dev/null 2>&1
-[ "$(grep -c '^tab close w9:t2$' "$T/tlog")" = 7 ] && ! ls "$(git rev-parse --git-common-dir)/prime/team/"*.tab >/dev/null 2>&1 \
+[ "$(grep -c '^tab close w9:t2$' "$T/tlog")" = 9 ] && ! ls "$(git rev-parse --git-common-dir)/prime/team/"*.tab >/dev/null 2>&1 \
   && ok "team: stop --all closes every teammate tab" || bad "team stop --all" "$(cat "$T/tlog")"
 expect_code "codex: --base without a value -> 2" 2 env PATH="$T/stub:$PATH" "$S/prime-codex.sh" review --base
 expect_code "status: --base without a value -> 2 (no endless loop)" 2 "$S/prime-status.sh" --base
@@ -344,6 +359,7 @@ fi
 # --- exit codes documented for every script ---
 if command -v node >/dev/null 2>&1; then
   node "$ROOT/tests/v06.mjs" "$T" && ok "v0.6 guardrail unit cases" || bad "v0.6 guardrail unit cases"
+  out="$(node "$ROOT/tests/op.test.mjs" "$T" 2>&1)" && ok "op-config budgets, pins and op-mode references" || bad "op tests" "$out"
 fi
 
 for f in "$S"/*.sh "$S"/*.mjs; do

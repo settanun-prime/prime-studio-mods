@@ -23,6 +23,7 @@ All roles adhere strictly to `${CLAUDE_PLUGIN_ROOT}/skills/prime-principles/SKIL
 | `codex` | Codex CLI teammate (`gpt-6.1-sol`, reasoning `xhigh`) | multi-file integration and conflict resolution |
 | `hermes` | Hermes Agent teammate, profile `prime` (Prime's own clean memory) | self-contained streams, a third builder next to Claude Code and Codex |
 
+Models: `/setup-op` (`R/scripts/op-config.mjs`) overrides the teammates' model and effort per role (`builder`, `reviewer`, `codex`, `hub`); without it the table above holds. For rigor on a single task, the user runs `/op-mode`, which routes multi-part work back here.
 Settings: `prime.config.json` → `codex` (model, effort; or `PRIME_CODEX_MODEL` / `PRIME_CODEX_EFFORT`) and `team` (extra args per CLI, Hermes profile).
 
 ## Team (herdr only)

@@ -25,6 +25,11 @@ Based on Keep a Changelog; each mod in Prime Studio Mods is versioned independen
 - **แก้ / Fixed**: slash command ที่มีข้อมูลส่วนบุคคลใน argument ไม่ขึ้นข้อความว่าปกปิดแล้วอีก (engine ไม่รับการแก้ข้อความของ command) แต่เตือนแทน / no false "redacted" toast for slash-command arguments; a warning instead
 - **แก้ / Fixed**: prompt.submit และ tool.call ปิดกั้นไว้ก่อนเมื่อ hook หมดเวลา (`.catch`) / both fail closed on a hook timeout
 
+### prime-workflow 1.1.0
+- **ใหม่ / New**: `/setup-op` เลือกงบการคิดและ model ต่อบทบาท, `/op-mode` เลือก playbook และ skill ให้ตามประเภทงาน ทำงานร่วมกับ Prime autopilot (ดัดแปลงจาก pstack) / reasoning budget and per-role models, and a rigor router over playbooks and skills that hands multi-part work to the autopilot (adapted from pstack)
+- **ใหม่ / New**: ทีม herdr ใช้ model และ effort จาก `/setup-op`; บันทึกการตัดสินใจด้วย `prime-ledger.sh decision` / the herdr team uses the `/setup-op` models; a decision trail in the run ledger
+- **แก้ / Fixed**: helper ใน `prime-common.sh` เรียกตัวเองไม่รู้จบจนสคริปต์ตายตั้งแต่บรรทัด log แรก / the shell helpers no longer call themselves forever
+
 ### prime-agents-panel 1.0.1
 - **แก้ / Fixed**: ไฟล์ agent ที่อ่านไม่ได้หรือขึ้นต้นด้วย BOM ไม่ทำให้ pane ว่างหรือชื่อผิด / an unreadable or BOM-led agent file no longer empties the pane or loses its name
 

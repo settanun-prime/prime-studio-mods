@@ -133,23 +133,5 @@ prime_cfg_list() {
     "$cfg" "$1"
 }
 
-# Aliases for backward compatibility
-prime_log() { prime_log "$@"; }
-prime_warn() { prime_warn "$@"; }
-prime_die() { prime_die "$@"; }
-prime_need_val() { prime_need_val "$@"; }
-prime_require_repo() { prime_require_repo "$@"; }
-prime_state_dir() { prime_state_dir "$@"; }
-prime_pick_base() { prime_pick_base "$@"; }
-prime_patch_id() { prime_patch_id "$@"; }
-prime_now() { prime_now "$@"; }
-prime_json_get() { prime_json_get "$@"; }
-prime_jget() { prime_jget "$@"; }
-prime_json_escape() { prime_json_escape "$@"; }
-prime_is_clean() { prime_is_clean "$@"; }
-prime_protected_branch() { prime_protected_branch "$@"; }
-prime_common_dir() { prime_common_dir "$@"; }
-prime_ledger() { prime_ledger "$@"; }
-prime_run_timeout() { prime_run_timeout "$@"; }
-prime_cfg_int() { prime_cfg_int "$@"; }
-prime_cfg_list() { prime_cfg_list "$@"; }
+# Model or effort for an op role from /setup-op, empty until it has been run: prime_op <role> model|effort
+prime_op() { node "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/op-config.mjs" get "$1" "$2" || true; }

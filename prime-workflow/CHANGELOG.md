@@ -2,6 +2,15 @@
 
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); [SemVer](https://semver.org/). The repository-wide CHANGELOG.md summarises each release in Thai and English and links here.
 
+## 1.1.0 - 2026-10-16
+
+- **Added** `/setup-op` (`skills/setup-op`) and `/op-mode` (`skills/op-mode` with the `prototype`, `autonomous-run`, `pickup` and `pause` playbooks), adapted from Cursor's `pstack` `/setup-pstack` and `/poteto-mode` (MIT). `/op-mode` routes a task to a playbook and the skills it needs, with a bundled fallback for each, and hands multi-part work to the autopilot.
+- **Added** `scripts/op-config.mjs`: a reasoning budget plus a model and effort per role in `~/.claude/op/models.json` (`OP_CONFIG` overrides the path). Effort is derived on every read, so a new budget moves every role without a pinned effort.
+- **Added** `prime-team.sh` passes `--model`/`--effort` from `/setup-op` to `claude-code` (`builder`) and `prime-reviewer` (`reviewer`) teammates and uses its Codex choice before the plugin config. `prime-bg.sh` does the same for the hub (`hub`). Without a `/setup-op` file nothing changes.
+- **Added** `prime-ledger.sh decision "<choice>" --why "<evidence>"`; `prime-report.mjs` lists the decisions.
+- **Fixed** `scripts/lib/prime-common.sh` ended with "aliases" that redefined `prime_log`, `prime_warn`, `prime_die` and 17 other helpers to call themselves, so a script died on its first log line. The block is gone.
+- **Tests** `tests/op.test.mjs` (budgets, pins, validation, and a lint that every file, section, script and role op-mode names exists) and new cases in `tests/run.sh`.
+
 ## 1.0.0 - 2026-10-16
 
 - **Added** `skills/prime-principles/SKILL.md`: engineering rigor adapted from Cursor's `pstack` (poteto-mode), enforcing the Laziness Protocol (YAGNI, minimal diffs, standard library first), Domain Modeling, Boundary Discipline, Pre-Coding Blast Radius Mapping, 5 Stream Playbooks, Scientific Verification ("Prove It Works"), Adversarial Interrogation, and Anti-Slop / No-Comment hygiene across all roles.

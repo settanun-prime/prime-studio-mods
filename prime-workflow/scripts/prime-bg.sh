@@ -16,6 +16,9 @@ prime_require_repo
 command -v herdr >/dev/null 2>&1 || prime_die "herdr not on PATH: Prime runs its team on herdr only (https://herdr.dev)" 3
 # No extra claude args: the hub gets team.claudeArgs (e.g. --permission-mode auto) so it does not stop at every command.
 if [ $# -eq 0 ]; then while IFS= read -r a; do set -- "$@" "$a"; done < <(prime_cfg_list team.claudeArgs); fi
+# The hub's model and effort from /setup-op; extra claude args given here come later and win.
+hub=(); m="$(prime_op hub model)"; e="$(prime_op hub effort)"
+[ -n "$m" ] && hub+=(--model "$m"); [ -n "$e" ] && hub+=(--effort "$e")
 
 # The main checkout, never a stream worktree: the hub ticks from there.
 repo="$(git worktree list --porcelain | awk '/^worktree /&&!s{print substr($0,10); s=1}')"
@@ -32,7 +35,7 @@ pane="$(herdr workspace create --cwd "$repo" --label "$name" --no-focus </dev/nu
 # (e.g. the folder-trust dialog) fails: answer it in the herdr TUI and run again.
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
   err="$(herdr agent start "$name" --kind claude --pane "$pane" --timeout 120000 -- \
-    --agent prime-workflow:prime-orchestrator "$@" 2>&1 </dev/null >/dev/null)" && break
+    --agent prime-workflow:prime-orchestrator ${hub[@]+"${hub[@]}"} "$@" 2>&1 </dev/null >/dev/null)" && break
   case "$err" in *agent_pane_busy*) sleep 2 ;; *) break ;; esac
 done
 [ -z "$err" ] || prime_die "hub did not start in $pane ($err): open herdr, check workspace $name"

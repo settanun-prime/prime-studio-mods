@@ -32,6 +32,7 @@ const summary = {
   gates: count('gate', 'result'), reviews: count('review', 'verdict'), merges: count('merge', 'result'),
   cleanupRemoved: events.filter((e) => e.event === 'cleanup').reduce((n, e) => n + (e.removed || 0), 0),
   agents,
+  decisions: events.filter((e) => e.event === 'decision').map(({ ts, branch, choice, why }) => ({ ts, branch, choice, why })),
 };
 const issues = Object.entries(agents).flatMap(([r, a]) => [
   ...(a.overBudget ? [`${r}: ${a.overBudget} run(s) over the ${a.budget}-turn budget`] : []),
@@ -52,6 +53,8 @@ else {
   if (!Object.keys(agents).length) console.log('  none recorded (Prime records runs with prime-ledger.sh agent ...)');
   for (const [r, a] of Object.entries(agents))
     console.log(`  ${r.padEnd(18)} runs ${a.runs}, turns ${a.turns}, max ${a.maxTurns}/${a.budget ?? '?'}${a.partial ? ', partial ' + a.partial : ''}${a.failed ? ', failed ' + a.failed : ''}`);
+  if (summary.decisions.length) console.log(`decisions (${summary.decisions.length}, last 10):`);
+  for (const d of summary.decisions.slice(-10)) console.log(`  ${d.ts} ${d.choice} -- ${d.why}`);
   for (const i of issues) console.log(`! ${i}`);
 }
 if (args.includes('--strict') && issues.length) process.exit(1);

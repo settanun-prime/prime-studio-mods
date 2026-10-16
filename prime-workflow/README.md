@@ -1,4 +1,4 @@
-# prime-workflow (Prime) v1.0.0
+# prime-workflow (Prime) v1.1.0
 
 [ไทย](#ไทย) · [English](#english)
 
@@ -62,6 +62,18 @@ Base (เช่น `main`) ไม่ถูกแตะจนกว่า `final-
 - **Scientific Verification ("Prove It Works")**: ไม่รับคำกล่าวอ้างโดยไม่มีหลักฐาน ต้องรัน acceptance test จริง และแสดงผลลัพธ์พร้อม exit code 0
 - **Adversarial Interrogation**: ผู้รีวิวไม่ประทับตรารับรองแบบผ่านๆ แต่ตรวจสอบเชิงซักค้าน (edge cases, failure modes, race conditions, blast radius leakage) ร่วมกับความเห็นที่สองจาก Codex
 - **Anti-Slop & Comment Discipline**: กำจัดคำพูดเยิ่นเย้อของ AI และห้ามใส่คอมเมนต์ขยะที่อธิบายไวยากรณ์ธรรมดา โค้ดต้องสื่อความหมายด้วยตัวเอง (self-documenting)
+
+### op mode: `/setup-op` และ `/op-mode`
+ตัวรวมที่รู้ว่างานแต่ละแบบต้องทำอะไรและใช้ skill ไหน ดัดแปลงจาก `pstack` ของ Cursor (`/setup-pstack`, `/poteto-mode`, MIT) ให้ทำงานร่วมกับ Prime
+1. `/setup-op` เลือกงบการคิด (`unlimited`, `large`, `medium`, `small`) และ model ต่อบทบาท (`hub`, `hardest`, `builder`, `reviewer`, `verifier`, `explorer`, `codex`) เก็บที่ `~/.claude/op/models.json`
+2. `/op-mode` ใช้เมื่องานต้องการความรัดกุม: จัดประเภทงาน เปิด playbook เป็น task list โหลดเฉพาะ skill ที่ playbook ต้องใช้ (ถ้า skill นั้นไม่ได้ติดตั้งก็ใช้ส่วนที่มากับ prime-principles แทน) ให้ subagent ใช้ model ตามตาราง งานหลายส่วนส่งต่อให้ Prime autopilot และพิสูจน์ผลก่อนรายงาน
+
+ส่วนที่ทำเพิ่มจาก pstack:
+- งบกับ model แยกกัน และ `scripts/op-config.mjs` เป็นตัวคำนวณ effort และตรวจค่า (มีเทสต์) ไม่ได้อาศัยคำอธิบายในพรอมต์ ค่าผิดถูกปฏิเสธด้วย exit 2
+- ตารางเดียวกันใช้ทั้ง subagent ใน `/op-mode` และทีม herdr (`prime-team.sh`, `prime-bg.sh`) ลำดับของ Codex คือ env, `/setup-op` แล้วจึง config ของ plugin ถ้ายังไม่ได้รัน `/setup-op` ทุกอย่างทำงานแบบเดิม
+- งานหลายส่วนเข้า harness `prime-run.mjs` ซึ่งมี gate จริง (acceptance, secret scan, path ownership, reviewer, final review) ไม่ใช่ playbook ที่เป็นข้อความอย่างเดียว
+- บันทึกการตัดสินใจลง ledger: `prime-ledger.sh decision "<เลือกอะไร>" --why "<หลักฐาน>"` แล้ว `prime-report.mjs` แสดงรายการ
+- เทสต์โครงสร้างตรวจว่า playbook, หัวข้อใน prime-principles, script และบทบาทที่ `/op-mode` อ้างถึงมีอยู่จริง
 
 ### ติดตั้งใน Codex
 
@@ -210,6 +222,18 @@ High-rigor engineering standards adapted from Cursor `pstack` / `poteto-mode` (s
 - **Scientific Verification ("Prove It Works")**: Runtime evidence over declarations. Acceptance commands must execute real checks against actual behavior and exit 0.
 - **Adversarial Interrogation**: Reviewers never rubber-stamp; they challenge edge cases, failure states, concurrent conditions, and blast radius boundaries with a Codex second opinion (`prime-codex.sh review`).
 - **Anti-Slop & Comment Discipline**: Zero conversational filler, zero sycophancy. Code is self-documenting; redundant syntax comments are banned.
+
+### op mode: `/setup-op` and `/op-mode`
+One entry point that knows what each kind of task needs and which skills to use. Adapted from Cursor's `pstack` (`/setup-pstack`, `/poteto-mode`, MIT) and wired into Prime.
+1. `/setup-op` picks a reasoning budget (`unlimited`, `large`, `medium`, `small`) and a model per role (`hub`, `hardest`, `builder`, `reviewer`, `verifier`, `explorer`, `codex`), stored in `~/.claude/op/models.json`.
+2. `/op-mode` for any task that needs rigor: it classifies the task, opens the playbook as the task list, loads only the skills that playbook needs (falling back to the bundled prime-principles when a skill is not installed), runs subagents on the role table, hands multi-part work to the Prime autopilot, and proves the result before reporting.
+
+What it adds over pstack:
+- Budget and model are separate settings, and `scripts/op-config.mjs` derives effort and validates every value in tested code instead of prompt prose. A bad value is refused with exit 2.
+- One table drives both the `/op-mode` subagents and the herdr team (`prime-team.sh`, `prime-bg.sh`). For Codex the order is env, then `/setup-op`, then the plugin config. Until `/setup-op` runs, nothing changes.
+- Multi-part work goes through the `prime-run.mjs` harness with enforced gates (acceptance, secret scan, path ownership, reviewer, final review), not a prose-only playbook.
+- Decisions go to the run ledger: `prime-ledger.sh decision "<choice>" --why "<evidence>"`, listed by `prime-report.mjs`.
+- A structure test checks that every playbook, prime-principles section, script and role `/op-mode` names exists.
 
 ### Install in Codex
 

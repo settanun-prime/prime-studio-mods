@@ -191,8 +191,13 @@ ask)
     [ -f "$team/$name.tab" ] && { herdr tab close "$(cat "$team/$name.tab")" </dev/null >/dev/null 2>&1 || true; }
     pane="$(open_tab "$name" "$dir")"
     if [ "$kind" = claude ]; then args=(--agent "prime-workflow:$role")
+      op=builder; [ "$role" = prime-reviewer ] && op=reviewer
+      m="$(prime_op "$op" model)"; e="$(prime_op "$op" effort)"
+      [ -n "$m" ] && args+=(--model "$m"); [ -n "$e" ] && args+=(--effort "$e")
     else
-      model="${PRIME_CODEX_MODEL:-$(prime_cfg_list codex.model)}"; effort="${PRIME_CODEX_EFFORT:-$(prime_cfg_list codex.reasoningEffort)}"
+      # env, then /setup-op, then the plugin config
+      model="${PRIME_CODEX_MODEL:-$(prime_op codex model)}"; model="${model:-$(prime_cfg_list codex.model)}"
+      effort="${PRIME_CODEX_EFFORT:-$(prime_op codex effort)}"; effort="${effort:-$(prime_cfg_list codex.reasoningEffort)}"
       args=(--add-dir "$team"); [ -n "$model" ] && args+=(-m "$model"); [ -n "$effort" ] && args+=(-c "model_reasoning_effort=$effort")
     fi
     while IFS= read -r a; do args+=("$a"); done < <(prime_cfg_list "team.${kind}Args")

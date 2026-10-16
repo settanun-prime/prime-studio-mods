@@ -20,7 +20,8 @@ All Prime scripts use the same meanings, so agents and CI can branch on them.
 | `prime-status.sh` | 0, 2 | Read-only |
 | `prime-cleanup.sh` | 0, 2 | Dry-run by default; skips dirty worktrees rather than failing |
 | `prime-doctor.sh` | 0, 1 | `claude mcp list` bounded by `PRIME_DOCTOR_MCP_TIMEOUT` (60 s) |
-| `prime-ledger.sh` | 0, 2 | |
+| `prime-ledger.sh` | 0, 2 | 2 = usage, or a `decision` without `--why` |
+| `op-config.mjs` | 0, 1, 2 | 2 = usage, unknown role, invalid model or effort, or an unreadable `~/.claude/op/models.json`; `get` prints nothing until `/setup-op` has written the file |
 | `worktree-new.sh` | 0, 2, 3 | 3 = exists or `maxParallelWorktrees` reached |
 | `prime-plan.mjs` | 0, 1, 2, 3 | `deps-merged` returns 3 when a dependency is not merged. `scan`: 0 clean, 3 secret found (prints `file:line pattern-name`, never the value; `octopus-merge:0 unscanned` for an octopus merge), 2 usage or cannot scan (git failed, or `branch patch exceeds 64MB`) |
 | `prime-queue.mjs` | 0, 2 | Read-only; predicts conflicts with `git merge-tree` |
