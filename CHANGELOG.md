@@ -8,7 +8,7 @@ Based on Keep a Changelog; each mod in Prime Studio Mods is versioned independen
 ## [1.1.1] - 2026-10-16
 
 ### prime-ctbar 1.1.1
-- **แก้ / Fixed**: ในแอป desktop และ SDK ปุ่ม compact ไม่ค้างหมุนกับฝุ่นหลัง `/compact` เสร็จอีก: แอนิเมชันจบเมื่อ compaction เสร็จ แม้ host ไม่ตอบคำสั่ง `/compact` และมี timeout 2 นาทีเหมือนทางปกติ / on the desktop app and SDK hosts the button no longer spins over dust after `/compact` finished: the animation ends once a compaction lands even when the host never answers the command, with the same 2-minute timeout as the direct path
+- **แก้ / Fixed**: ปุ่ม compact ไม่ค้างหมุนกับฝุ่นอีก: ตัดแอนิเมชันรอระหว่าง compact ออก แถบแตกแล้วประกอบกลับทันที (ราว 0.8 วินาที) แล้วจึง compact ในแอป desktop และ SDK การรอจบเมื่อ compaction เสร็จ แม้ host ไม่ตอบคำสั่ง `/compact` และมี timeout 2 นาทีเหมือนทางปกติ / the compact button no longer spins over dust: the waiting animation is gone, the bar breaks and builds straight back (about 0.8 s), then it compacts. On the desktop app and SDK hosts the wait ends once a compaction lands even when the host never answers `/compact`, with the same 2-minute timeout as the direct path
 - **แก้ / Fixed**: เสียงเทสดังเมื่อรันสคริปต์ในโฟลเดอร์ tests (`bash tests/run.sh`, `./tests/run.sh`), ผ่าน `timeout`, และ `node --test` / the test chime now fires for a suite script in a tests folder, behind `timeout`, and for `node --test`
 
 ### prime-guard 1.1.1

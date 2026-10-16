@@ -43,7 +43,7 @@ test('pressing the button squeezes the label, compacts once, and opens the label
 })
 
 // the desktop app and SDK hosts refuse $.session.compact, so the button runs /compact; the host answers that command late or
-// never, so the compaction landing must end the spin
+// never, so the compaction landing must end the wait
 test('on a host that refuses $.session.compact, the face is built back once /compact lands, answered or not', async ($, on) => {
   const clock = mock.clock(on)
   let landed = 0
@@ -80,5 +80,31 @@ test('on a host that refuses $.session.compact, the face is built back once /com
   await pressed
   expect(landed).toBe(1)
   expect(await ui.find({ type: 'Text', text: 'compact' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('while a compaction is still out, the face is already built back: no waiting glyph', async ($, on) => {
+  const clock = mock.clock(on)
+  on('ui.toast', () => ({ value: undefined }))
+  on('session.usage', () => ({ value: {
+    startedAt: 0,
+    context: { tokens: 90000, window: 1000000, percent: 9, breakdown: { categories: cats, totalTokens: 90000, maxTokens: 1000000, rawMaxTokens: 1000000, percentage: 9 } },
+    rateLimits: [],
+  } }))
+  on('session.compact', () => new Promise(() => {})) // never answers
+  on('session.start', ($$: any, e: { cwd: string }) => ({ cwd: e.cwd }))
+  on('command.register', () => ({ value: { command: 'context-bar' } }))
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+
+  const ui = await $.ui.mount({
+    plugin: 'prime-ctbar',
+    surface: 'terminal',
+    component: 'AbovePrompt',
+    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  })
+  const pressed = $.ui.press({ plugin: 'prime-ctbar', key: 'compact' })
+  for (let i = 0; i < 8; i++) await clock.advance(250)
+  expect(await ui.find({ type: 'Text', text: 'compact' })).toBeDefined()
+  void pressed
   await ui.unmount()
 })

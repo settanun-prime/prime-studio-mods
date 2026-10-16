@@ -13,7 +13,7 @@ const autoAt = atom({ plugin: 'prime-ctbar', key: 'autoAt' } as const, 85 as num
 const AUTO_DEFAULT = 85
 // true once this host refused $.session.compact: every later press goes straight to /compact
 const headless = atom({ plugin: 'prime-ctbar', key: 'headless' } as const, false)
-// the button's face: its label shatters when pressed, spins while compacting, then builds back
+// the button's face: its label shatters when pressed, then builds back
 const btnLabel = atom({ plugin: 'prime-ctbar', key: 'btnLabel' } as const, 'compact')
 // while the button is pressed the bar is drawn as rubble: these glyphs in each category's colour, shaken `nudge` cells right
 const debris = atom({ plugin: 'prime-ctbar', key: 'debris' } as const, null as Debris | null)
@@ -21,7 +21,7 @@ const isSoundOn = atom({ plugin: 'prime-ctbar', key: 'isSoundOn' } as const, tru
 // the colour of its label; /prime-ctbar color <name | #hex | default> changes it
 const btnColor = atom({ plugin: 'prime-ctbar', key: 'btnColor' } as const, '#7dd3fc')
 const BTN_DEFAULT = '#7dd3fc'
-// the bar shakes, cracks and crumbles to dust, then is built back up from the rubble once the compaction answers
+// the bar shakes, cracks and crumbles to dust, then is built back up from the rubble
 const BREAK: { label: string; debris: Debris | null }[] = [
   { label: 'compact', debris: { glyphs: '█', nudge: 1 } },
   { label: 'c0mpact', debris: { glyphs: '█▓', nudge: 0 } },
@@ -32,7 +32,6 @@ const BREAK: { label: string; debris: Debris | null }[] = [
   { label: '˙ .', debris: { glyphs: '·  ˙', nudge: 0 } },
   { label: '·', debris: { glyphs: ' .  ', nudge: 0 } },
 ]
-const DUST: Debris = { glyphs: ' ·  ', nudge: 0 }
 const REBUILD: { label: string; debris: Debris | null }[] = [
   { label: '·', debris: { glyphs: '░', nudge: 0 } },
   { label: 'co', debris: { glyphs: '▒', nudge: 0 } },
@@ -40,7 +39,6 @@ const REBUILD: { label: string; debris: Debris | null }[] = [
   { label: 'compac', debris: null },
   { label: 'compact', debris: null },
 ]
-const SPIN = ['◐', '◓', '◑', '◒']
 const FRAME_MS = 60
 const COMPACT_KEEP = 'Keep the open task, the decisions made, file paths and the next step. Drop tool output already acted on.'
 // one compaction at a time; a hot reload resets it, and the engine refuses a turn-time compact anyway
@@ -75,7 +73,7 @@ const TIMEOUT = 'no answer after 2 minutes'
 let landed: (() => void) | undefined
 
 // the answer to a compaction request, or undefined once a compaction lands first: a host's /compact may answer its command
-// late or never. Rejects with TIMEOUT when neither comes, so a press never spins forever
+// late or never. Rejects with TIMEOUT when neither comes, so `compacting` is never left set
 async function untilLanded<T>($: EngineInterface, work: Promise<T>): Promise<T | undefined> {
   work.catch(() => {}) // a late rejection after the race is decided is no unhandled one
   let timer: { cancel: () => void } | undefined
@@ -148,20 +146,13 @@ async function frames($: EngineInterface, list: { label: string; debris: Debris 
   }
 }
 
-// the press of the button: the bar and its label are smashed to dust, the dust turns while the compaction works, then both
-// are built back up
+// the press of the button: the bar and its label are smashed to dust and built straight back up, then it compacts.
+// No waiting face: the host may answer late or never, and a glyph left turning there reads as stuck
 async function press($: EngineInterface, why: string) {
   if (compacting || (await read($, btnLabel)) !== 'compact') return
   await frames($, BREAK)
-  const job = compact($, why)
-  await update($, debris, () => DUST)
-  let i = 0
-  while (compacting) {
-    await update($, btnLabel, () => SPIN[i++ % SPIN.length])
-    await $.clock.sleep(120)
-  }
-  await job
   await frames($, REBUILD)
+  await compact($, why)
 }
 
 // 8-bit chimes so the person can look away while tests run: a jingle when they pass, a buzz when they fail or a turn errors
@@ -270,7 +261,7 @@ export const register: Register = on => {
     try {
       return await next(e)
     } finally {
-      landed?.() // a press waiting on this compaction stops spinning, whether it took or not
+      landed?.() // a press waiting on this compaction stops waiting, whether it took or not
       refreshSoon($) // a failed compaction too: the window may have changed
     }
   })
