@@ -61,8 +61,8 @@ claude plugin uninstall prime-guard@prime-studio-mods
 
 | Mod | Version | Command | What it does |
 |---|---|---|---|
-| `prime-guard` | 1.1.1 | `/prime-guard [redact\|block\|off]`, `/prime-blur [on\|off\|record]` | Redacts personal data it detects before it is sent to Claude, and masks it on screen (hover to reveal; in recording mode hovering does not reveal it). |
-| `prime-ctbar` | 1.1.1 | `/prime-ctbar` (or `/ctbar`) | A bar above the prompt showing context window use by category and the time left on the prompt cache with interactive compact button (the bar crumbles to dust and builds back when pressed). |
+| `prime-guard` | 1.1.2 | `/prime-guard [redact\|block\|off]`, `/prime-blur [on\|off\|record]` | Redacts personal data it detects before it is sent to Claude, and masks it on screen (hover to reveal; in recording mode hovering does not reveal it). |
+| `prime-ctbar` | 1.1.2 | `/prime-ctbar` (or `/ctbar`) | A bar above the prompt showing context window use by category and the time left on the prompt cache with interactive compact button (the bar crumbles to dust and builds back when pressed). |
 | `prime-agents-panel` | 1.0.1 | `/prime-agents-panel` | A side pane listing project, user and plugin agents, each with a run button |
 | `prime-workflow` | 1.1.1 | none needed (just ask for the goal), `/op-mode` for rigor on any task, `/setup-op` for the models it uses, or `/prime-plan`, `/prime-review`, `/prime-merge` and the other `/prime-*` commands | The Prime workflow on autopilot: describe a goal in plain words and Claude Opus/Sonnet/Haiku plus the Codex CLI plan it, build it in one worktree per stream, review it and merge it into your local base through a gate, with no slash commands needed ([README](prime-workflow/README.md#english), [diagram](prime-workflow/docs/workflow-diagram.md)) |
 

@@ -13,7 +13,7 @@
       "name": "prime-guard",
       "source": "./prime-guard",
       "description": "Security & PDPA guard: redacts Thai and international personal data before sending, masks machine identity on screen. Local detection, no network calls of its own. Keeps secret files closed, refuses publishing personal data or secrets.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "license": "MIT",
       "category": "security",
       "keywords": ["guard", "pdpa", "thailand", "privacy", "pii", "redaction", "guardrail", "secrets"]
@@ -22,7 +22,7 @@
       "name": "prime-ctbar",
       "source": "./prime-ctbar",
       "description": "Context window breakdown and prompt-cache countdown above the prompt with interactive compact button; /prime-ctbar (or /ctbar) toggles it.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "license": "MIT",
       "category": "development",
       "keywords": ["context", "cache", "statusline", "compact", "ctbar"]

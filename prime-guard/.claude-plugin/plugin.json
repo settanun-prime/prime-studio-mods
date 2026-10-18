@@ -1,6 +1,6 @@
 {
   "name": "prime-guard",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Helps reduce personal data sent to Claude: redacts detected Thai and international personal data before sending and masks it on screen. Detection runs locally and the mod makes no network calls of its own; the redacted conversation is still sent to your configured model provider (Anthropic by default). Also keeps secret files (.env, keys) closed to the file tools and shell, and refuses a tool call that would send a credential or personal data off the machine. It also hides who and where: the user's account and machine names (learned from the machine), profile paths, host and ssh-config names, LAN URLs, MAC addresses, SIDs, SSH key lines and private key blocks. Before a git push, gh release or package publish it reads the commits that would go out and refuses when they hold personal data or secrets (it names the file and the kind, never the value). Images and files are not read: it warns, or blocks in block mode. Best effort, not legal advice.",
   "author": {
     "name": "settanun-prime (Prime Studio)",

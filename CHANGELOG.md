@@ -5,7 +5,7 @@ Based on Keep a Changelog; each mod in Prime Studio Mods is versioned independen
 
 ---
 
-## [Unreleased]
+## [1.1.2] - 2026-10-18
 
 ### prime-ctbar, prime-guard
 - **ลบ / Removed**: เสียง 8-bit ทั้งหมด (เสียงเทสผ่าน/ล้มเหลว, คำสั่ง `sound on|off`, ไฟล์ `sfx/`) / all 8-bit sounds: the test chimes, the `sound on|off` command and the `sfx/` clips
