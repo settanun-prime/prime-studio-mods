@@ -13,6 +13,6 @@ export type Cache = number | 'live' | null
 
 declare module 'claude-code' {
   interface PluginState {
-    'prime-ctbar': { fill: Fill | null; isHidden: boolean; cache: Cache; endsAt: number | null; autoAt: number | null; btnLabel: string; btnColor: string; headless: boolean; debris: Debris | null; isSoundOn: boolean }
+    'prime-ctbar': { fill: Fill | null; isHidden: boolean; cache: Cache; endsAt: number | null; autoAt: number | null; btnLabel: string; btnColor: string; headless: boolean; debris: Debris | null }
   }
 }

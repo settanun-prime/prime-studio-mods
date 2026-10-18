@@ -39,11 +39,6 @@ export const PUBLISH = new RegExp(
 )
 const EGRESS_TOOL = /^(?:WebFetch|WebSearch|mcp__.*)$/
 
-// a test runner where a command starts (after ; | & ( or a newline, past npx, timeout, VAR=x and the like), not the word in a grep;
-// the guard chimes when one ends. The same pattern is in prime-ctbar: a mod cannot import another's code
-export const TEST_CMD =
-  /(?:^|[;&|(\n])\s*(?:(?:npx|bunx|sudo|time|uv\s+run|poetry\s+run|pnpm\s+exec)\s+|timeout\s+\S+\s+|[A-Za-z_]\w*=\S*\s+)*(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test\b|(?:jest|vitest|mocha|pytest|phpunit|rspec|ctest|playwright\s+test)\b|python3?\s+-m\s+(?:pytest|unittest)\b|(?:go|cargo|dotnet|deno)\s+test\b|cargo\s+nextest\b|(?:\.\/)?gradlew?\s+test\b|mvn\b[^\n;&|]*\btest\b|make\s+(?:test|check)\b|claude\s+plugin\s+test\b|(?:node|bash|sh|python3?|tsx|bun)\s+(?:--test\b|[\w./\\-]*test[\w./\\-]*\.(?:sh|mjs|cjs|js|ts|py)\b)|\.?\.?\/?[\w./\\-]*test[\w./\\-]*\.sh\b)/i
-
 const PATH_TOOLS = /^(?:Read|NotebookRead|Grep|Glob|LS|NotebookEdit)$/
 
 export type Verdict = { reason: string } | null

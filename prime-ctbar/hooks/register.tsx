@@ -17,7 +17,6 @@ const headless = atom({ plugin: 'prime-ctbar', key: 'headless' } as const, false
 const btnLabel = atom({ plugin: 'prime-ctbar', key: 'btnLabel' } as const, 'compact')
 // while the button is pressed the bar is drawn as rubble: these glyphs in each category's colour, shaken `nudge` cells right
 const debris = atom({ plugin: 'prime-ctbar', key: 'debris' } as const, null as Debris | null)
-const isSoundOn = atom({ plugin: 'prime-ctbar', key: 'isSoundOn' } as const, true)
 // the colour of its label; /prime-ctbar color <name | #hex | default> changes it
 const btnColor = atom({ plugin: 'prime-ctbar', key: 'btnColor' } as const, '#7dd3fc')
 const BTN_DEFAULT = '#7dd3fc'
@@ -155,24 +154,6 @@ async function press($: EngineInterface, why: string) {
   await compact($, why)
 }
 
-// 8-bit chimes so the person can look away while tests run: a jingle when they pass, a buzz when they fail or a turn errors
-// A test runner where a command starts (after ; | & ( or a newline, past npx, timeout, VAR=x and the like), not the word in a grep
-const TEST_CMD =
-  /(?:^|[;&|(\n])\s*(?:(?:npx|bunx|sudo|time|uv\s+run|poetry\s+run|pnpm\s+exec)\s+|timeout\s+\S+\s+|[A-Za-z_]\w*=\S*\s+)*(?:(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?test\b|(?:jest|vitest|mocha|pytest|phpunit|rspec|ctest|playwright\s+test)\b|python3?\s+-m\s+(?:pytest|unittest)\b|(?:go|cargo|dotnet|deno)\s+test\b|cargo\s+nextest\b|(?:\.\/)?gradlew?\s+test\b|mvn\b[^\n;&|]*\btest\b|make\s+(?:test|check)\b|claude\s+plugin\s+test\b|(?:node|bash|sh|python3?|tsx|bun)\s+(?:--test\b|[\w./\\-]*test[\w./\\-]*\.(?:sh|mjs|cjs|js|ts|py)\b)|\.?\.?\/?[\w./\\-]*test[\w./\\-]*\.sh\b)/i
-let lastChime = Number.NEGATIVE_INFINITY
-async function chime($: EngineInterface, clip: 'pass' | 'fail') {
-  if (!(await read($, isSoundOn))) return
-  const now = await $.clock.now()
-  if (now - lastChime < 1000) return // parallel test runs ending together: one chime
-  lastChime = now
-  const root = $.plugin.root
-  // a Windows terminal has no player behind $.audio.play; Windows' own SoundPlayer plays a WAV
-  const played = /^(?:[A-Za-z]:|\\\\)/.test(root)
-    ? $.process.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', `(New-Object Media.SoundPlayer '${`${root}/sfx/${clip}.wav`.replace(/'/g, "''")}').PlaySync()`], { timeoutMs: 10_000 })
-    : $.audio.play({ asset: `sfx/${clip}.wav` })
-  void played.catch(() => {}) // no player is no reason to fail a tool call
-}
-
 // runs between turns: compacts once the window passes the threshold
 let lastAutoAt = Number.NEGATIVE_INFINITY
 async function maybeCompact($: EngineInterface) {
@@ -234,11 +215,6 @@ const runCtbar = async ($: EngineInterface, e: { args: string }) => {
     await update($, autoAt, () => next)
     return { text: next === null ? 'Auto compact off.' : `Auto compact at ${next}% of the window.` }
   }
-  if (word === 'sound') {
-    if (value === 'on' || value === 'off') await update($, isSoundOn, () => value === 'on')
-    else if (value !== undefined && value !== '') return { text: 'Usage: /prime-ctbar sound [on | off]' }
-    return { text: `Test sounds ${(await read($, isSoundOn)) ? 'on' : 'off'}.` }
-  }
   if (word === 'color' || word === 'colour') {
     const want = (value ?? '').trim()
     if (want === '') return { text: `Button colour: ${await read($, btnColor)}. Change: /prime-ctbar color <name | #rrggbb | default>` }
@@ -247,7 +223,7 @@ const runCtbar = async ($: EngineInterface, e: { args: string }) => {
     await update($, btnColor, () => next)
     return { text: `Button colour: ${next}.` }
   }
-  if (word !== undefined && word !== '') return { text: 'Usage: /prime-ctbar [auto [on | off | 1-99] | color <name | #rrggbb | default> | sound [on | off]]' }
+  if (word !== undefined && word !== '') return { text: 'Usage: /prime-ctbar [auto [on | off | 1-99] | color <name | #rrggbb | default>]' }
   const wasHidden = await read($, isHidden)
   await update($, isHidden, () => !wasHidden)
   if (wasHidden) await refresh($)
@@ -313,20 +289,8 @@ export const register: Register = on => {
     await refresh($)
     // not here: a compaction is refused while the turn that is completing still runs
     $.clock.after(RETRY_MS, () => { void maybeCompact($) })
-    if (e.reason === 'error') void chime($, 'fail')
     return next(e)
   })
-
-  on('tool.call', async ($, e, next) => {
-    const r = await next(e)
-    const { command, run_in_background } = e as { command?: unknown; run_in_background?: unknown }
-    // a background run answers at once, before any test has finished
-    if ((e.tool === 'Bash' || e.tool === 'PowerShell') && typeof command === 'string' && !run_in_background && !r.deny && TEST_CMD.test(command)) {
-      void chime($, r.isError ? 'fail' : 'pass')
-    }
-    return r
-  })
-
 
   on('command.run', { command: 'prime-ctbar' }, runCtbar)
   on('command.run', { command: 'ctbar' }, runCtbar)
