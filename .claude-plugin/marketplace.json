@@ -12,8 +12,8 @@
     {
       "name": "prime-guard",
       "source": "./prime-guard",
-      "description": "Security & PDPA guard: redacts Thai and international personal data before sending, masks machine identity on screen. Local detection, no network calls of its own. Keeps secret files closed, refuses publishing personal data or secrets.",
-      "version": "1.1.2",
+      "description": "Security & PDPA guard: redacts Thai and international personal data before sending, masks machine identity on screen. Local detection, no network calls of its own. Keeps secret files closed, refuses publishing personal data or secrets. Optional global git hooks block a push that carries this PC's network or personal data.",
+      "version": "1.2.0",
       "license": "MIT",
       "category": "security",
       "keywords": ["guard", "pdpa", "thailand", "privacy", "pii", "redaction", "guardrail", "secrets"]

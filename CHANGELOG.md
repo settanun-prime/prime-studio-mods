@@ -5,6 +5,14 @@ Based on Keep a Changelog; each mod in Prime Studio Mods is versioned independen
 
 ---
 
+## [1.2.0] - 2026-10-29
+
+### prime-guard 1.2.0
+- **ใหม่ / New**: git guard ทั้งเครื่อง `/prime-guard git on | off | status` ตั้ง `core.hooksPath` ไปที่ `git-hooks/` ของปลั๊กอิน `pre-push` สแกนทุก commit ที่จะ push (patch และข้อความ) แล้วบล็อกเมื่อเจอ key/token, IP/MAC จริงของ LAN, host ใน ssh config, ชื่อ/IP Tailscale, path โปรไฟล์ Windows, SID หรือ e-mail จริง แสดงแค่ไฟล์ บรรทัด ชนิด และค่าที่ปิดบัง; `pre-commit` เตือนอย่างเดียว; ยกเว้นค่าด้วย `.guard-allow` หรือ `~/.git-guard-allow` / machine-wide git guard: `/prime-guard git on | off | status` points `core.hooksPath` at the plugin's `git-hooks/`; `pre-push` scans every pushed commit (patch and message) and blocks keys and tokens, real LAN addresses and MACs, ssh-config hosts, Tailscale names and addresses, Windows profile paths, SIDs and real e-mails, printing only file, line, kind and a masked value; `pre-commit` only warns; allowlists in `.guard-allow` or `~/.git-guard-allow`
+- **ใหม่ / New**: เปิด session หลังอัปเดตปลั๊กอิน `core.hooksPath` ย้ายไปโฟลเดอร์เวอร์ชันใหม่เอง / after a plugin update the next session start moves `core.hooksPath` to the new version folder
+
+---
+
 ## [1.1.2] - 2026-10-18
 
 ### prime-ctbar, prime-guard

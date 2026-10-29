@@ -2,6 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import { findSensitive, identity, issuedTag, learnIdentity, newTags, plan, redact, scrub, secretCount } from './detect'
+import { hooksDir, isGuardHooks, repoint } from './githooks'
 import { PUBLISH, toolGuard } from './guard'
 import { scanPublish } from './publish'
 
@@ -60,6 +61,50 @@ async function learn($: EngineInterface) {
   const [who, host, gitName] = await Promise.all([out(['whoami']), out(['hostname']), out(['git', 'config', '--global', 'user.name'])])
   const [domain, account] = who.includes('\\') ? who.split('\\') : ['', who]
   learnIdentity({ users: [account, gitName], hosts: [host, domain] })
+}
+
+async function git($: EngineInterface, args: string[]) {
+  try {
+    const r = await $.process.run(['git', 'config', '--global', ...args], { timeoutMs: 5000 })
+    return { ok: r.exitCode === 0, out: r.stdout.trim() }
+  } catch {
+    return { ok: false, out: '' }
+  }
+}
+
+async function shipped($: EngineInterface) {
+  try {
+    await $.fs.read(`${hooksDir($.plugin.root)}/pre-push`)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// session start: keep an earlier install pointing at the copy that is loaded now
+async function refreshGitHooks($: EngineInterface) {
+  const ours = hooksDir($.plugin.root)
+  const to = repoint((await git($, ['--get', 'core.hooksPath'])).out, ours)
+  if (to && (await shipped($))) await git($, ['core.hooksPath', to])
+}
+
+// /prime-guard git on | off | status
+async function gitHooksCommand($: EngineInterface, value: string | undefined) {
+  const ours = hooksDir($.plugin.root)
+  const current = (await git($, ['--get', 'core.hooksPath'])).out
+  if (value === 'on') {
+    if (!(await shipped($))) return 'ไม่พบ git-hooks ในปลั๊กอินนี้'
+    if (current && !isGuardHooks(current)) return `core.hooksPath ตั้งไว้ที่อื่นอยู่แล้ว (${current}) ไม่เขียนทับ ปิดเองก่อนด้วย git config --global --unset core.hooksPath`
+    const r = await git($, ['core.hooksPath', ours])
+    return r.ok ? `เปิด git guard ทั้งเครื่องแล้ว: ทุก git push ถูกสแกนก่อนออก (ข้ามครั้งเดียวด้วย git push --no-verify)\n${ours}` : 'ตั้ง core.hooksPath ไม่สำเร็จ'
+  }
+  if (value === 'off') {
+    if (!isGuardHooks(current)) return current ? `core.hooksPath ไม่ใช่ของ prime-guard (${current}) ไม่แตะ` : 'git guard ปิดอยู่แล้ว'
+    const r = await git($, ['--unset', 'core.hooksPath'])
+    return r.ok ? 'ปิด git guard แล้ว: git push ไม่ถูกสแกนอีก' : 'ลบ core.hooksPath ไม่สำเร็จ'
+  }
+  const state = !current ? 'ปิด' : current.replace(/\\/g, '/') === ours ? 'เปิด (สำเนานี้)' : isGuardHooks(current) ? `เปิด (สำเนาอื่น: ${current})` : `ปิด (core.hooksPath เป็นของอื่น: ${current})`
+  return `git guard: ${state}\nเปลี่ยนด้วย /prime-guard git on | off`
 }
 
 async function showStatus($: EngineInterface) {
@@ -136,6 +181,7 @@ async function guardPrompt($: EngineInterface, e: any, next: (e: any) => Promise
 const runGuard = async ($: EngineInterface, e: { args: string }) => {
   const arg = e.args.trim().toLowerCase()
   const [word, value] = arg.split(/\s+/)
+  if (word === 'git') return { text: await gitHooksCommand($, value) }
   if (arg === 'names') {
     const { users, hosts } = identity()
     return {
@@ -175,7 +221,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'prime-guard',
-      description: 'Prime guard: redact | block | off (no argument shows the current mode)',
+      description: 'Prime guard: redact | block | off (no argument shows the current mode) | git on | off | status',
     })
     await $.command.register({
       name: 'prime-blur',
@@ -187,6 +233,7 @@ export const register: Register = on => {
     }
     await showStatus($)
     void learn($).catch(() => {})
+    void refreshGitHooks($).catch(() => {})
     return next(e)
   })
 

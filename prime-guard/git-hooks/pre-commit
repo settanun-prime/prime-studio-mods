@@ -1,0 +1,8 @@
+#!/bin/sh
+# git-guard: warns about personal or network data in the staged diff; never blocks the commit
+dir=$(dirname "$0")
+py=$(command -v python || command -v python3 || command -v py)
+[ -n "$py" ] && "$py" "$dir/guard.py" pre-commit
+repo_hook="$(git rev-parse --git-dir)/hooks/pre-commit"
+if [ -x "$repo_hook" ]; then exec "$repo_hook" "$@"; fi
+exit 0

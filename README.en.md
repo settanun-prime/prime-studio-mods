@@ -103,6 +103,7 @@ The mode and the mask settings are not saved to disk and start as `redact` with 
 /prime-guard redact   redact before sending (default)
 /prime-guard block    refuse prompts that contain detected personal data
 /prime-guard off      turn the guard off
+/prime-guard git on | off | status   global git hooks that scan every push (see Git hooks below)
 /prime-blur (or /blur, /pdpa-blur)           toggle the on-screen mask (on if it is off; off if it is on or recording)
 /prime-blur on        mask on, hover to reveal
 /prime-blur off       mask off
@@ -194,6 +195,24 @@ The sensitive categories follow section 26 of the Personal Data Protection Act B
 - Redaction applies to the copy the model reads: each detected occurrence is replaced with a placeholder before it is sent to the model. The same value can still be sent if it also appears somewhere the guard does not rewrite (see [Limits](#limits)), and anything the rules miss is sent as is.
 - Redaction is not anonymisation. The redacted conversation can still identify a person directly or indirectly, which is how section 6 of the PDPA defines personal data ([PDF hosted by the PDPC](https://www.pdpc.or.th/wp-content/uploads/2023/12/1_Personal-Data-Protection-2562.pdf), checked 2026-10-04), so it may still be personal data, and questions such as lawful basis and cross-border transfer may still apply. Ask a qualified lawyer or your organisation's DPO.
 - The guard rewrites only what Claude Code sends to the model. Other channels are separate, are not covered and may receive original values: Remote Control (relayed through Anthropic's service to claude.ai or the Claude app), command hooks in your settings, a telemetry collector your organisation configured, and reports you send to Anthropic.
+
+### Git hooks for every repository
+
+`/prime-guard git on` points git's global `core.hooksPath` at this plugin's `git-hooks` folder, so every push on the machine is scanned before it leaves, inside or outside Claude Code. The `pre-push` hook reads every commit being pushed (patch and message; for a new branch, every commit not on any remote) and blocks the push on:
+
+1. values that are never placeholders: private key blocks, cloud and chat API tokens, Tailscale addresses outside the placeholder ranges, burned-in MAC addresses, Windows profile paths, Windows SIDs;
+2. this machine's real identifiers, read at push time: LAN and ARP-neighbour addresses (not the router), adapter and ARP MACs, `~/.ssh/config` hosts, Tailscale addresses, node and login names, the Windows user name, and any real e-mail (GitHub noreply is fine).
+
+It prints file, line and kind with a masked value, never the value. A real author or committer e-mail only warns. The `pre-commit` hook warns about the staged diff and never blocks. Intentional values go in `.guard-allow` at the repository root, or in `~/.git-guard-allow` for every repository: one regex per line, matched against the value found. Needs `sh` (Git for Windows), Python 3 and, on Windows, PowerShell 5.1.
+
+```text
+/prime-guard git on | off | status
+--no-verify on the push                         skip once, in an emergency
+sh <plugin>/git-hooks/test-guard.sh               self-test in a throwaway repository
+python <plugin>/git-hooks/guard.py report <repo>   kinds and counts in unpushed commits
+```
+
+`on` does not overwrite a `core.hooksPath` that belongs to something else (Husky and the like), and `off` removes only its own. A repository with its own local `core.hooksPath` is not guarded. After a plugin update, the next session start moves the path to the new version folder.
 
 ### Limits
 

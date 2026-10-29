@@ -1,0 +1,11 @@
+#!/bin/sh
+# git-guard: blocks a push that carries personal or network data of this PC (see README.md)
+input=$(cat)
+dir=$(dirname "$0")
+py=$(command -v python || command -v python3 || command -v py)
+if [ -z "$py" ]; then echo "git-guard: Python 3 not found, push blocked. Emergency: git push --no-verify" >&2; exit 1; fi
+printf '%s\n' "$input" | "$py" "$dir/guard.py" pre-push "$@" || exit 1
+# a global hooksPath hides the repo's own hooks: run them too
+repo_hook="$(git rev-parse --git-dir)/hooks/pre-push"
+if [ -x "$repo_hook" ]; then printf '%s\n' "$input" | "$repo_hook" "$@" || exit 1; fi
+exit 0
